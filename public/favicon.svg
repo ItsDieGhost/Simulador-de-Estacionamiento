@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="MySpot">
+  <rect width="64" height="64" fill="#ffc400"/>
+  <rect x="2" y="2" width="60" height="60" fill="none" stroke="#17191c" stroke-width="4"/>
+  <path d="M11 48V16h8l13 18 13-18h8v32h-8V30L32 46 19 30v18z" fill="#17191c"/>
+  <path d="M8 54h48" stroke="#17191c" stroke-width="3" stroke-dasharray="8 4"/>
+</svg>

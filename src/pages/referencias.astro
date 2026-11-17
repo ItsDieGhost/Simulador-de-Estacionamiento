@@ -1,0 +1,113 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { referencesAlphabetical } from '../data/references';
+import { withBase } from '../lib/paths';
+
+const title = 'Referencias y fuentes verificadas · MySpot';
+const description =
+  'Bibliografía en APA 7 con 14 fuentes verificables sobre teoría de colas, simulación, estacionamiento, accesibilidad, seguridad web y despliegue estático.';
+
+const kindLabels = {
+  paper: 'Artículo',
+  book: 'Libro',
+  standard: 'Estándar',
+  web: 'Web',
+} as const;
+---
+
+<BaseLayout
+  title={title}
+  description={description}
+  breadcrumbLabel="Referencias"
+>
+  <header class="page-header">
+    <div class="wrap">
+      <p class="eyebrow">Bibliografía</p>
+      <h1>Referencias y fuentes</h1>
+      <p class="lede">{description}</p>
+      <div class="page-header__meta">
+        <span>14 fuentes</span>
+        <span>Formato APA 7</span>
+        <span>Revisión: 17 de noviembre de 2026</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="wrap doc-layout">
+    <aside class="doc-aside">
+      <nav class="toc" aria-labelledby="toc-title">
+        <h2 id="toc-title">En esta página</h2>
+        <ol>
+          <li><a href="#lista" data-number="01">Lista alfabética</a></li>
+          <li><a href="#verificacion" data-number="02">Verificación y criterios</a></li>
+        </ol>
+      </nav>
+      <p class="doc-aside__note">
+        Las citas del contenido muestran autor y año; cada una enlaza aquí. El ancla interna
+        conserva un identificador estable, pero no se presenta como numeración bibliográfica.
+      </p>
+    </aside>
+
+    <article class="prose">
+      <p class="lead-in">
+        Cada cita del sitio enlaza a una entrada de esta página mediante el par autor–año. Las
+        entradas siguen el orden alfabético de APA 7; el identificador interno
+        <code>#ref-N</code> solo sirve como ancla.
+      </p>
+
+      <div class="callout">
+        <p>
+          <strong>Cómo leer una entrada:</strong> primero aparece el tipo de fuente, luego la
+          referencia en APA 7 y, cuando existe, el DOI o la URL comprobable. Los libros sin DOI se
+          identifican por ISBN. La fecha de comprobación es común a toda la lista.
+        </p>
+      </div>
+
+      <h2 id="lista">Lista alfabética</h2>
+      <ul class="ref-list" role="list">
+        {
+          referencesAlphabetical.map((reference) => (
+            <li class="ref-item" id={`ref-${reference.id}`}>
+              <span class="ref-item__id">{kindLabels[reference.kind]}</span>
+              <div class="ref-item__body">
+                <p class="ref-item__citation" set:html={reference.html} />
+                {reference.url && (
+                  <a
+                    class="ref-item__link"
+                    href={reference.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {reference.url}
+                    <span class="sr-only"> (abre en una pestaña nueva)</span>
+                  </a>
+                )}
+                {reference.note && <p class="ref-item__note">{reference.note}</p>}
+              </div>
+            </li>
+          ))
+        }
+      </ul>
+
+      <h2 id="verificacion">Verificación y criterios</h2>
+      <p>
+        Se priorizaron artículos revisados por pares, libros técnicos con ISBN, especificaciones de
+        organismos de normalización y documentación oficial. No se usaron resúmenes generados,
+        entradas de blogs ni cifras de mercado sin fuente primaria.
+      </p>
+      <ul class="check-list">
+        <li>Los DOI se resolvieron en Crossref y las URL externas respondieron con HTTP 200.</li>
+        <li>Las referencias a libros se contrastaron con registros de Open Library.</li>
+        <li>Las normas WCAG 2.2 y MathML Core se enlazan a sus publicaciones oficiales del W3C.</li>
+        <li>La documentación de CSP, GitHub Pages y Astro sirve de base para las decisiones técnicas.</li>
+        <li>La fecha de revisión bibliográfica y de enlaces es el 17 de noviembre de 2026.</li>
+      </ul>
+
+      <p>
+        Para volver al desarrollo del modelo, consulta la <a href={withBase('/teoria/')}>teoría</a>
+        o abre el <a href={withBase('/simulador/')}>simulador</a>. Si detectas un enlace roto,
+        escríbenos mediante el <a href={withBase('/acerca/#seguridad')}>canal de seguridad</a>.
+      </p>
+    </article>
+  </div>
+</BaseLayout>

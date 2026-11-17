@@ -1,0 +1,462 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Citation from '../components/Citation.astro';
+import { withBase } from '../lib/paths';
+import { simulate } from '../lib/simulation/simulator';
+import { erlangB } from '../lib/simulation/theory';
+import { DEFAULT_PARAMS } from '../lib/simulation/types';
+import {
+  formatInteger,
+  formatMinutes,
+  formatNumber,
+  formatPercent,
+} from '../lib/simulation/format';
+
+const scenario = simulate(DEFAULT_PARAMS);
+const { metrics, theory, params } = scenario;
+const noQueueRejection = erlangB(params.offeredLoad, params.spaces);
+const title = 'Caso MySpot: plazas, cola y espera · MySpot';
+const description =
+  'Caso didáctico MySpot: 60 plazas, 10 de cola y llegadas de 45 vehículos por hora. Qué revelan la ocupación, el rechazo y la espera.';
+
+const experimentLink = (overrides: Record<string, string | number>): string => {
+  const query = new URLSearchParams({
+    arrivalRate: String(DEFAULT_PARAMS.arrivalRate),
+    meanStayMinutes: String(DEFAULT_PARAMS.meanStayMinutes),
+    spaces: String(DEFAULT_PARAMS.spaces),
+    queueCapacity: String(DEFAULT_PARAMS.queueCapacity),
+    durationHours: String(DEFAULT_PARAMS.durationHours),
+    seed: String(DEFAULT_PARAMS.seed),
+    ...Object.fromEntries(Object.entries(overrides).map(([key, value]) => [key, String(value)])),
+  });
+  return `${withBase('/simulador/')}?${query.toString()}`;
+};
+
+const sections = [
+  { id: 'contexto', label: 'Contexto y pregunta' },
+  { id: 'traduccion', label: 'Del campus al modelo' },
+  { id: 'escenario', label: 'Escenario base' },
+  { id: 'resultados', label: 'Resultados' },
+  { id: 'lectura', label: 'Interpretación' },
+  { id: 'experimentos', label: 'Experimentos sugeridos' },
+  { id: 'limites', label: 'Decisiones y límites' },
+];
+---
+
+<BaseLayout
+  title={title}
+  description={description}
+  breadcrumbLabel="Caso MySpot"
+  structuredData={{
+    '@type': 'Article',
+    headline: 'Caso MySpot: capacidad, cola y espera en un estacionamiento universitario',
+    articleSection: 'Caso de estudio',
+    inLanguage: 'es',
+    isAccessibleForFree: true,
+  }}
+>
+  <header class="page-header">
+    <div class="wrap">
+      <p class="eyebrow">Caso de estudio</p>
+      <h1>Un lote casi lleno, una cola que decide.</h1>
+      <p class="lede">
+        MySpot parte de una pregunta de capacidad: ¿qué pasa si el estacionamiento recibe 45 autos por
+        hora, cada uno se queda 75 minutos en promedio y solo hay 60 plazas? El escenario es
+        didáctico, pero obliga a mirar juntos la ocupación, el rechazo y la espera.
+      </p>
+      <div class="page-header__meta">
+        <span>60 plazas · 10 de cola</span>
+        <span>24 horas · semilla {DEFAULT_PARAMS.seed}</span>
+        <span>Datos generados, no medidos</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="wrap doc-layout">
+    <aside class="doc-aside">
+      <nav class="toc" aria-labelledby="toc-title">
+        <h2 id="toc-title">En esta página</h2>
+        <ol>
+          {
+            sections.map((section, index) => (
+              <li>
+                <a href={`#${section.id}`} data-number={String(index + 1).padStart(2, '0')}>
+                  {section.label}
+                </a>
+              </li>
+            ))
+          }
+        </ol>
+      </nav>
+      <p class="doc-aside__note">
+        Los valores de esta página salen del mismo motor del <a href={withBase('/simulador/')}>simulador</a>.
+        Si cambias un parámetro ahí, los resultados se actualizan.
+      </p>
+    </aside>
+
+    <article class="prose">
+      <p class="lead-in">
+        El caso no busca demostrar que el campus necesita más plazas. Busca mostrar cómo se razona
+        sobre esa necesidad: qué demanda se supone, cuánto dura una visita, qué cola se tolera y qué
+        métrica se usa para decidir.
+      </p>
+
+      <h2 id="contexto">Contexto y pregunta</h2>
+      <p>
+        En un estacionamiento universitario la demanda no es uniforme: se concentra en los cambios de
+        clase, compite con la circulación interna y castiga a quien llega tarde. Cuando no hay una
+        plaza visible, el conductor sigue buscando; esa búsqueda tiene un costo en tiempo, combustible
+        y congestión que no aparece en la factura del estacionamiento. El análisis de Shoup sobre el
+        estacionamiento gratuito y la búsqueda de lugar documenta ese efecto. <Citation ids={[7]} />
+      </p>
+      <p>
+        MySpot se plantea como un proyecto de estacionamiento con apoyo digital. Antes de discutir
+        reservas, tarifas o una aplicación, el caso aísla la capacidad física: un lote único, plazas
+        idénticas y una cola limitada. La pregunta operativa es:
+      </p>
+      <blockquote>
+        <p>
+          Con esta demanda y esta permanencia, ¿cuántos vehículos quedan fuera, cuánto esperan y qué
+          tan lleno está el lote durante las 24 horas?
+        </p>
+      </blockquote>
+      <p>
+        La respuesta no es un número único. Es una distribución de resultados posibles y un
+        compromiso entre tres cosas: plazas, cola y nivel de servicio.
+      </p>
+
+      <h2 id="traduccion">Del campus al modelo</h2>
+      <p>
+        El modelo M/M/c/K ofrece una traducción directa del vocabulario del campus. Cada decisión de
+        modelado deja un supuesto visible, y cada supuesto puede discutirse por separado.
+      </p>
+
+      <div class="table-wrap">
+        <table class="data-table">
+          <caption>Correspondencia entre el caso y las variables del modelo.</caption>
+          <thead>
+            <tr>
+              <th scope="col">En el campus</th>
+              <th scope="col">En el modelo</th>
+              <th scope="col">Valor del escenario</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">Autos que buscan entrar</th>
+              <td>Llegadas Poisson con tasa <math><mi>λ</mi></math></td>
+              <td>{DEFAULT_PARAMS.arrivalRate} veh/h</td>
+            </tr>
+            <tr>
+              <th scope="row">Tiempo que un auto ocupa una plaza</th>
+              <td>Servicio exponencial con media <math><mi>E</mi><mo>[</mo><mi>S</mi><mo>]</mo></math></td>
+              <td>{DEFAULT_PARAMS.meanStayMinutes} min</td>
+            </tr>
+            <tr>
+              <th scope="row">Plazas disponibles</th>
+              <td>Servidores <math><mi>c</mi></math></td>
+              <td>{DEFAULT_PARAMS.spaces}</td>
+            </tr>
+            <tr>
+              <th scope="row">Autos que pueden esperar en el acceso</th>
+              <td>Cola <math><mi>m</mi></math></td>
+              <td>{DEFAULT_PARAMS.queueCapacity}</td>
+            </tr>
+            <tr>
+              <th scope="row">Capacidad total</th>
+              <td><math><mi>K</mi><mo>=</mo><mi>c</mi><mo>+</mo><mi>m</mi></math></td>
+              <td>{params.capacity} veh</td>
+            </tr>
+            <tr>
+              <th scope="row">Jornada observada</th>
+              <td>Horizonte de simulación</td>
+              <td>{DEFAULT_PARAMS.durationHours} h</td>
+            </tr>
+            <tr>
+              <th scope="row">Descarte del arranque</th>
+              <td>Calentamiento</td>
+              <td>15 % · {formatNumber(metrics.warmupHours)} h</td>
+            </tr>
+            <tr>
+              <th scope="row">Reproducibilidad</th>
+              <td>Semilla del PRNG</td>
+              <td>{DEFAULT_PARAMS.seed}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        La tasa de servicio es <math><mi>μ</mi><mo>=</mo><mn>60</mn><mo>/</mo><mn>75</mn><mo>=</mo><mn>0,8</mn></math>
+        veh/h por plaza. La carga ofrecida es <math><mi>a</mi><mo>=</mo><mi>λ</mi><mo>/</mo><mi>μ</mi><mo>=</mo><mn>56,25</mn></math>
+        erlangs: menos que las 60 plazas, pero con una utilización teórica del
+        <strong>93,75 %</strong>. Esa cercanía al límite explica por qué pequeñas variaciones de
+        demanda se notan tanto en la cola.
+      </p>
+
+      <figure class="case-figure case-figure--plan">
+        <svg
+          class="lot-plan"
+          viewBox="0 0 560 300"
+          role="img"
+          aria-labelledby="case-plan-title case-plan-desc"
+        >
+          <title id="case-plan-title">Esquema del caso MySpot con plazas, acceso y cola</title>
+          <desc id="case-plan-desc">
+            Esquema didáctico de dos filas de diez plazas, un acceso a la derecha y una cola de
+            vehículos afuera. No representa las 60 plazas a escala.
+          </desc>
+          <rect class="lot-line" x="14" y="14" width="532" height="272" />
+          <text class="lot-label" x="30" y="34">ESQUEMA DIDÁCTICO · 20 PLAZAS VISIBLES DE 60</text>
+          <line class="lot-dash" x1="30" y1="150" x2="530" y2="150" />
+          <path class="lot-arrow" d="M468 150h44m-12-10 12 10-12 10" />
+          <text class="lot-label--accent" x="432" y="137" text-anchor="end">ACCESO</text>
+          {
+            Array.from({ length: 20 }, (_, index) => {
+              const column = index % 10;
+              const row = index < 10 ? 0 : 1;
+              const x = 30 + column * 49;
+              const y = row === 0 ? 48 : 188;
+              const busy = [0, 1, 2, 3, 4, 5, 7, 8, 9, 11, 12, 13, 14, 15, 16, 18, 19].includes(index);
+              return (
+                <g>
+                  <rect class={busy ? 'car car--busy' : 'car'} x={x} y={y} width="38" height="82" rx="2" />
+                  <text class="lot-label" x={x + 19} y={y + 76} text-anchor="middle">
+                    {String(index + 1).padStart(2, '0')}
+                  </text>
+                </g>
+              );
+            })
+          }
+          <rect class="car car--accent" x="306" y="128" width="52" height="26" rx="2" />
+          <text class="lot-label--accent" x="370" y="145">COLA EN ACCESO</text>
+          <text class="lot-label" x="30" y="286">DEMANDA {DEFAULT_PARAMS.arrivalRate} VEH/H · PERMANENCIA {DEFAULT_PARAMS.meanStayMinutes} MIN</text>
+          <text class="lot-label" x="530" y="286" text-anchor="end">C = 60 · M = 10</text>
+        </svg>
+        <figcaption>
+          Esquema conceptual del lote. Las plazas ocupadas son ilustrativas; los resultados se
+          calculan con 60 plazas y una cola máxima de 10 vehículos.
+        </figcaption>
+      </figure>
+
+      <h2 id="escenario">Escenario base</h2>
+      <p>
+        La corrida usa una semilla fija y descarta el primer 15 % del horizonte. El objetivo del
+        calentamiento es evitar que el lote empiece vacío y que las primeras llegadas dominen el
+        promedio. La ventana efectiva es de {formatNumber(metrics.measuredHours)} horas.
+      </p>
+
+      <div class="scenario-card" aria-label="Parámetros y resultados principales del escenario base">
+        <div class="scenario-card__head">
+          <span>MySpot · escenario base</span>
+          <span>Semilla {DEFAULT_PARAMS.seed} · {DEFAULT_PARAMS.durationHours} h</span>
+        </div>
+        <dl class="scenario-card__stats">
+          <div class="scenario-stat">
+            <dt>Ocupación</dt>
+            <dd>{formatPercent(metrics.occupancy)}</dd>
+          </div>
+          <div class="scenario-stat">
+            <dt>Rechazo</dt>
+            <dd>{formatPercent(metrics.rejectionRate)}</dd>
+          </div>
+          <div class="scenario-stat">
+            <dt>Espera</dt>
+            <dd>{formatMinutes(metrics.averageWaitMinutes)}</dd>
+          </div>
+        </dl>
+        <div class="scenario-card__foot">
+          <span>{formatInteger(metrics.arrivals)} llegadas · {formatInteger(metrics.rejected)} rechazos</span>
+          <a href={experimentLink({})}>Repetir en el simulador →</a>
+        </div>
+      </div>
+
+      <h2 id="resultados">Resultados</h2>
+      <p>
+        En esta realización, la simulación y la teoría quedaron cerca. Esa cercanía no es una
+        garantía: depende del horizonte, de la semilla y de que el sistema no esté demasiado cerca de
+        un régimen inestable. La tabla muestra ambas lecturas para que la comparación quede explícita.
+      </p>
+
+      <div class="table-wrap">
+        <table class="data-table">
+          <caption>
+            Escenario base: simulación de 24 horas con semilla {DEFAULT_PARAMS.seed} frente al valor
+            estacionario M/M/c/K.
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col">Métrica</th>
+              <th scope="col">Simulación</th>
+              <th scope="col">Teoría</th>
+              <th scope="col">Lectura</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">Ocupación media</th>
+              <td class="num">{formatPercent(metrics.occupancy)}</td>
+              <td class="num">{formatPercent(theory.occupancy)}</td>
+              <td>El lote opera casi lleno.</td>
+            </tr>
+            <tr>
+              <th scope="row">Tasa de rechazo</th>
+              <td class="num">{formatPercent(metrics.rejectionRate)}</td>
+              <td class="num">{formatPercent(theory.rejectionRate)}</td>
+              <td>Pocos autos se van, pero no es gratis.</td>
+            </tr>
+            <tr>
+              <th scope="row">Cola media</th>
+              <td class="num">{formatNumber(metrics.averageQueue)} veh</td>
+              <td class="num">{formatNumber(theory.averageQueue)} veh</td>
+              <td>La cola promedio es baja.</td>
+            </tr>
+            <tr>
+              <th scope="row">Espera media</th>
+              <td class="num">{formatMinutes(metrics.averageWaitMinutes)}</td>
+              <td class="num">{formatMinutes(theory.averageWaitMinutes)}</td>
+              <td>El promedio oculta los picos.</td>
+            </tr>
+            <tr>
+              <th scope="row">Cola máxima observada</th>
+              <td class="num">{formatInteger(metrics.maxQueue)} veh</td>
+              <td class="num">≤ {params.queueCapacity} veh</td>
+              <td>El límite se alcanzó.</td>
+            </tr>
+            <tr>
+              <th scope="row">Salidas medidas</th>
+              <td class="num">{formatNumber(metrics.throughputPerHour)} veh/h</td>
+              <td class="num">{formatNumber(params.arrivalRate * (1 - theory.rejectionRate))} veh/h</td>
+              <td>Flujo cercano a la llegada efectiva.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="notice">
+        <p>
+          <strong>Lectura honesta:</strong> la cola máxima llegó a {formatInteger(metrics.maxQueue)}
+          vehículos, es decir, se agotó la espera disponible al menos una vez. La espera media de
+          {formatMinutes(metrics.averageWaitMinutes)} no describe a quien llegó en ese pico; describe
+          a todos los aceptados, incluidos los que entraron sin esperar.
+        </p>
+      </div>
+
+      <h2 id="lectura">Interpretación</h2>
+      <p>
+        La ocupación media de <strong>{formatPercent(metrics.occupancy)}</strong> parece una buena
+        noticia: las plazas se usan. También es una señal de fragilidad: con una utilización teórica
+        del 93,75 %, el sistema tiene poco margen para absorber una ráfaga. La cola de 10 vehículos
+        funciona como amortiguador, pero cuando se llena el rechazo aparece.
+      </p>
+      <p>
+        Sin esa cola, el mismo lote se comportaría como un sistema M/M/c/c. La fórmula de Erlang B
+        predice un bloqueo de <strong>{formatPercent(noQueueRejection)}</strong>, bastante mayor que
+        el rechazo observado con espera. La diferencia no significa que la cola sea gratuita: el
+        vehículo que espera ocupa espacio en el acceso y puede interferir con la circulación.
+        <Citation ids={[3, 4, 7]} />
+      </p>
+      <p>
+        La espera media de <strong>{formatMinutes(metrics.averageWaitMinutes)}</strong> es baja porque
+        la mayoría de los vehículos encuentra una plaza o espera poco. Pero la cola máxima de
+        <strong>{formatInteger(metrics.maxQueue)}</strong> indica que el caso extremo existe. Para un
+        servicio real, la distribución de la espera y la frecuencia de saturación importan tanto como
+        el promedio.
+      </p>
+      <p>
+        La ley de Little cierra la lectura: el número medio de vehículos en el sistema es
+        aproximadamente <strong>{formatNumber(metrics.averageInSystem)}</strong>, la tasa efectiva de
+        llegadas es <strong>{formatNumber(metrics.throughputPerHour)} veh/h</strong> y el tiempo medio
+        en el sistema ronda <strong>{formatNumber(metrics.averageInSystem / Math.max(metrics.throughputPerHour, 1e-9) * 60)} min</strong>.
+        Es una identidad contable, no una recomendación. <Citation ids={[5]} />
+      </p>
+
+      <h2 id="experimentos">Experimentos sugeridos</h2>
+      <p>
+        Un solo escenario no basta para decidir. Estos enlaces abren el simulador con la misma semilla
+        y cambian una variable a la vez. Observa qué métrica se mueve y cuál permanece estable.
+      </p>
+
+      <div class="table-wrap">
+        <table class="data-table">
+          <caption>Cuatro preguntas contrafactuales sobre el caso base.</caption>
+          <thead>
+            <tr>
+              <th scope="col">Cambio</th>
+              <th scope="col">Qué mirar</th>
+              <th scope="col">Acción</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">+10 plazas</th>
+              <td>Baja la ocupación y debería bajar el rechazo; la cola no desaparece por arte de magia.</td>
+              <td><a class="text-link" href={experimentLink({ spaces: 70 })}>Probar 70 plazas</a></td>
+            </tr>
+            <tr>
+              <th scope="row">Cola cero</th>
+              <td>El rechazo se traslada a la entrada y se acerca a Erlang B.</td>
+              <td><a class="text-link" href={experimentLink({ queueCapacity: 0 })}>Quitar la espera</a></td>
+            </tr>
+            <tr>
+              <th scope="row">Pico de demanda</th>
+              <td>Más llegadas saturan la cola y elevan la espera y el rechazo.</td>
+              <td><a class="text-link" href={experimentLink({ arrivalRate: 55 })}>Subir a 55 veh/h</a></td>
+            </tr>
+            <tr>
+              <th scope="row">Horizonte largo</th>
+              <td>El promedio se estabiliza y la comparación con la teoría gana precisión.</td>
+              <td><a class="text-link" href={experimentLink({ durationHours: 168 })}>Simular una semana</a></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2 id="limites">Decisiones y límites</h2>
+      <p>
+        El caso permite formular decisiones, pero no tomarlas por sí solo. Estos son los límites que
+        deben quedar escritos antes de cualquier recomendación:
+      </p>
+      <ul>
+        <li>
+          <strong>No hay datos de campo.</strong> Los 45 veh/h y los 75 minutos son supuestos
+          didácticos. Un estudio real necesita conteos por franja horaria, duración de estadía y
+          frecuencia de rechazo observada.
+        </li>
+        <li>
+          <strong>La demanda es estacionaria.</strong> El modelo usa una tasa constante; el campus
+          tiene picos. Una simulación con tasa variable por hora sería más realista y más exigente.
+        </li>
+        <li>
+          <strong>La permanencia es exponencial.</strong> Si las estadías reales son más regulares o
+          tienen clases distintas (visitas cortas y largas), la distribución debe calibrarse.
+        </li>
+        <li>
+          <strong>No se modela la búsqueda.</strong> El conductor que no encuentra plaza puede
+          circular, estacionarse mal o irse; el modelo solo cuenta aceptación, espera y rechazo.
+          Esa decisión no es neutral desde la política de estacionamiento. <Citation ids={[7]} />
+        </li>
+        <li>
+          <strong>No hay precios ni reservas.</strong> El caso no evalúa tarifas dinámicas, abonos ni
+          prioridades. Cada política requeriría un modelo distinto o una extensión explícita.
+        </li>
+      </ul>
+      <p>
+        La recomendación metodológica es anterior a cualquier obra: medir, ajustar, validar y recién
+        entonces dimensionar. El simulador sirve para conversar con esos datos, no para reemplazarlos.
+        <Citation ids={[2, 6]} />
+      </p>
+
+      <div class="cta-band">
+        <div>
+          <h2>Reproduce el caso o cambia el supuesto.</h2>
+          <p>
+            Abre el simulador con los parámetros base, mueve una variable y compara la nueva corrida
+            con la teoría.
+          </p>
+        </div>
+        <a class="button" href={experimentLink({})}>Abrir el escenario base</a>
+      </div>
+    </article>
+  </div>
+</BaseLayout>

@@ -1,0 +1,629 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Citation from '../components/Citation.astro';
+import { renderOccupancyChart, renderQueueChart, renderSeriesTable } from '../lib/charts';
+import {
+  formatInteger,
+  formatNumber,
+} from '../lib/simulation/format';
+import { renderComparisonTable, describeResult } from '../lib/simulation/report';
+import { simulate } from '../lib/simulation/simulator';
+import { DEFAULT_PARAMS, FIELD_BOUNDS } from '../lib/simulation/types';
+import { withBase } from '../lib/paths';
+
+const title = 'Simulador de estacionamiento M/M/c/K · MySpot';
+const description =
+  'Ajusta llegadas, permanencia, plazas y cola; simula 24 horas con semilla fija y compara los resultados con la predicción teórica M/M/c/K.';
+
+const initialResult = simulate(DEFAULT_PARAMS);
+const occupancySvg = renderOccupancyChart(initialResult);
+const queueSvg = renderQueueChart(initialResult);
+const seriesTable = renderSeriesTable(initialResult);
+const comparisonTable = renderComparisonTable(initialResult);
+const summary = describeResult(initialResult);
+---
+
+<BaseLayout
+  title={title}
+  description={description}
+  breadcrumbLabel="Simulador"
+  structuredData={{
+    '@type': 'WebApplication',
+    name: 'Simulador MySpot M/M/c/K',
+    description,
+    applicationCategory: 'EducationalApplication',
+    operatingSystem: 'Web',
+    browserRequirements: 'Requiere JavaScript para recalcular escenarios.',
+    isAccessibleForFree: true,
+    offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+    featureList: [
+      'Simulación de eventos discretos con semilla',
+      'Comparación con la teoría M/M/c/K',
+      'Gráficos SVG y tabla de datos accesible',
+    ],
+  }}
+>
+  <header class="page-header">
+    <div class="wrap">
+      <p class="eyebrow">Laboratorio interactivo</p>
+      <h1>Cambia una variable y observa el sistema.</h1>
+      <p class="lede">
+        El escenario parte de 45 llegadas por hora, una permanencia media de 75 minutos, 60 plazas y
+        10 puestos de espera. Modifica lo que quieras: la simulación se recalcula en tu navegador y
+        conserva la semilla para que puedas repetir la misma historia.
+      </p>
+      <div class="page-header__meta">
+        <span>Modelo M/M/c/K</span>
+        <span>Semilla reproducible</span>
+        <span>Sin servidor ni rastreadores</span>
+      </div>
+    </div>
+  </header>
+
+  <section class="wrap" aria-labelledby="sim-heading">
+    <h2 id="sim-heading" class="sr-only">Simulador interactivo de estacionamiento</h2>
+
+    <noscript>
+      <div class="notice notice--danger sim-noscript">
+        <p>
+          <strong>JavaScript está desactivado.</strong> Puedes consultar el escenario base que se
+          muestra abajo, pero los controles no recalcularán resultados. Activa JavaScript para usar
+          el simulador completo.
+        </p>
+      </div>
+    </noscript>
+
+    <div class="sim-workbench">
+      <form class="sim-form" data-sim-form novalidate>
+        <div class="sim-form__head">
+          <span class="kicker">Panel de control</span>
+          <h2>Escenario</h2>
+          <p>
+            Seis parámetros. Una sola corrida determinista. Cambia un valor y vuelve a ejecutar para
+            comparar historias.
+          </p>
+        </div>
+
+        <div class="sim-fields">
+          <div class="field">
+            <label class="field__label" for="arrivalRate">
+              Llegadas
+              <span class="field__range" aria-hidden="true">1–240</span>
+            </label>
+            <div class="field__control">
+              <input
+                id="arrivalRate"
+                name="arrivalRate"
+                type="number"
+                min={FIELD_BOUNDS.arrivalRate.min}
+                max={FIELD_BOUNDS.arrivalRate.max}
+                step={FIELD_BOUNDS.arrivalRate.step}
+                value={DEFAULT_PARAMS.arrivalRate}
+                required
+                aria-describedby="error-arrivalRate"
+              />
+              <span class="field__unit">veh/h</span>
+            </div>
+            <p class="field__error" id="error-arrivalRate" data-error-for="arrivalRate" hidden></p>
+          </div>
+
+          <div class="field">
+            <label class="field__label" for="meanStayMinutes">
+              Permanencia
+              <span class="field__range" aria-hidden="true">10–720</span>
+            </label>
+            <div class="field__control">
+              <input
+                id="meanStayMinutes"
+                name="meanStayMinutes"
+                type="number"
+                min={FIELD_BOUNDS.meanStayMinutes.min}
+                max={FIELD_BOUNDS.meanStayMinutes.max}
+                step={FIELD_BOUNDS.meanStayMinutes.step}
+                value={DEFAULT_PARAMS.meanStayMinutes}
+                required
+                aria-describedby="error-meanStayMinutes"
+              />
+              <span class="field__unit">min</span>
+            </div>
+            <p class="field__error" id="error-meanStayMinutes" data-error-for="meanStayMinutes" hidden></p>
+          </div>
+
+          <div class="field">
+            <label class="field__label" for="spaces">
+              Plazas
+              <span class="field__range" aria-hidden="true">1–300</span>
+            </label>
+            <div class="field__control">
+              <input
+                id="spaces"
+                name="spaces"
+                type="number"
+                min={FIELD_BOUNDS.spaces.min}
+                max={FIELD_BOUNDS.spaces.max}
+                step={FIELD_BOUNDS.spaces.step}
+                value={DEFAULT_PARAMS.spaces}
+                required
+                aria-describedby="error-spaces"
+              />
+              <span class="field__unit">plazas</span>
+            </div>
+            <p class="field__error" id="error-spaces" data-error-for="spaces" hidden></p>
+          </div>
+
+          <div class="field">
+            <label class="field__label" for="queueCapacity">
+              Cola
+              <span class="field__range" aria-hidden="true">0–100</span>
+            </label>
+            <div class="field__control">
+              <input
+                id="queueCapacity"
+                name="queueCapacity"
+                type="number"
+                min={FIELD_BOUNDS.queueCapacity.min}
+                max={FIELD_BOUNDS.queueCapacity.max}
+                step={FIELD_BOUNDS.queueCapacity.step}
+                value={DEFAULT_PARAMS.queueCapacity}
+                required
+                aria-describedby="error-queueCapacity"
+              />
+              <span class="field__unit">veh</span>
+            </div>
+            <p class="field__error" id="error-queueCapacity" data-error-for="queueCapacity" hidden></p>
+          </div>
+
+          <div class="field">
+            <label class="field__label" for="durationHours">
+              Horizonte
+              <span class="field__range" aria-hidden="true">1–720</span>
+            </label>
+            <div class="field__control">
+              <input
+                id="durationHours"
+                name="durationHours"
+                type="number"
+                min={FIELD_BOUNDS.durationHours.min}
+                max={FIELD_BOUNDS.durationHours.max}
+                step={FIELD_BOUNDS.durationHours.step}
+                value={DEFAULT_PARAMS.durationHours}
+                required
+                aria-describedby="error-durationHours"
+              />
+              <span class="field__unit">h</span>
+            </div>
+            <p class="field__error" id="error-durationHours" data-error-for="durationHours" hidden></p>
+          </div>
+
+          <div class="field field--seed">
+            <label class="field__label" for="seed">Semilla</label>
+            <div class="field__control">
+              <input
+                id="seed"
+                name="seed"
+                type="number"
+                min={FIELD_BOUNDS.seed.min}
+                max={FIELD_BOUNDS.seed.max}
+                step={FIELD_BOUNDS.seed.step}
+                value={DEFAULT_PARAMS.seed}
+                required
+                aria-describedby="error-seed"
+              />
+            </div>
+            <p class="field__error" id="error-seed" data-error-for="seed" hidden></p>
+          </div>
+        </div>
+
+        <div class="sim-form__actions">
+          <button class="button" type="submit">Simular escenario</button>
+          <div class="sim-form__row">
+            <button class="sim-textbutton" type="button" data-randomize>Nueva semilla</button>
+            <button class="sim-textbutton" type="button" data-reset>Restablecer</button>
+          </div>
+        </div>
+
+        <div class="sim-form__meta">
+          <span>Semilla <output data-seed-out>{DEFAULT_PARAMS.seed}</output> · URL reproducible</span>
+          <span>Calentamiento 15 %</span>
+        </div>
+      </form>
+
+      <div class="sim-stage" data-sim-stage aria-busy="false">
+        <section class="sim-board" data-sim-board data-state="ready" aria-labelledby="results-heading">
+          <h2 id="results-heading" class="sr-only">Panel de resultados</h2>
+          <div class="sim-board__head">
+            <span>Panel de resultados · escenario actual</span>
+            <span class="sim-board__status" data-status role="status">listo</span>
+          </div>
+
+          <p class="sim-summary" data-summary aria-live="polite" aria-atomic="true" set:html={summary}></p>
+
+          <dl class="sim-kpis">
+            <div class="kpi kpi--occupancy">
+              <dt>Ocupación media</dt>
+              <dd>
+                <span data-kpi="occupancy">{formatNumber(initialResult.metrics.occupancy * 100)}</span>
+                <span class="kpi__unit">%</span>
+                <span class="kpi__note" data-kpi-note="occupancy">{DEFAULT_PARAMS.spaces} plazas</span>
+              </dd>
+            </div>
+            <div class="kpi kpi--rejection">
+              <dt>Tasa de rechazo</dt>
+              <dd>
+                <span data-kpi="rejection">{formatNumber(initialResult.metrics.rejectionRate * 100)}</span>
+                <span class="kpi__unit">%</span>
+                <span class="kpi__note" data-kpi-note="rejection">
+                  de {formatInteger(initialResult.metrics.arrivals)} llegadas
+                </span>
+              </dd>
+            </div>
+            <div class="kpi kpi--queue">
+              <dt>Cola media</dt>
+              <dd>
+                <span data-kpi="queue">{formatNumber(initialResult.metrics.averageQueue)}</span>
+                <span class="kpi__unit">veh</span>
+                <span class="kpi__note">vehículos en espera</span>
+              </dd>
+            </div>
+            <div class="kpi kpi--wait">
+              <dt>Espera media</dt>
+              <dd>
+                <span data-kpi="wait">{formatNumber(initialResult.metrics.averageWaitMinutes)}</span>
+                <span class="kpi__unit">min</span>
+                <span class="kpi__note">solo aceptados</span>
+              </dd>
+            </div>
+            <div class="kpi kpi--throughput">
+              <dt>Salidas</dt>
+              <dd>
+                <span data-kpi="throughput">{formatNumber(initialResult.metrics.throughputPerHour)}</span>
+                <span class="kpi__unit">veh/h</span>
+                <span class="kpi__note">medidas en la ventana</span>
+              </dd>
+            </div>
+            <div class="kpi kpi--maxqueue">
+              <dt>Cola máxima</dt>
+              <dd>
+                <span data-kpi="maxqueue">{formatInteger(initialResult.metrics.maxQueue)}</span>
+                <span class="kpi__unit">veh</span>
+                <span class="kpi__note">pico registrado</span>
+              </dd>
+            </div>
+          </dl>
+
+          <div class="sim-board__foot">
+            <span>Semilla <strong data-foot="seed">{DEFAULT_PARAMS.seed}</strong></span>
+            <span>Ventana medida <strong data-foot="measured">{formatNumber(initialResult.metrics.measuredHours)} h</strong></span>
+            <span><strong data-foot="arrivals">{formatInteger(initialResult.metrics.arrivals)}</strong> llegadas</span>
+            <span><strong data-foot="rejected">{formatInteger(initialResult.metrics.rejected)}</strong> rechazos</span>
+          </div>
+        </section>
+
+        <div class="sim-charts">
+          <figure class="chart-frame" data-chart-frame="occupancy">
+            <figcaption>
+              <span>Ocupación media por intervalo</span>
+              <span class="chart-legend">
+                <span>ocupación</span>
+                <span class="legend--average">promedio</span>
+              </span>
+            </figcaption>
+            <div class="chart-canvas" data-chart="occupancy" set:html={occupancySvg}></div>
+          </figure>
+
+          <figure class="chart-frame" data-chart-frame="queue">
+            <figcaption>
+              <span>Longitud media de la cola por intervalo</span>
+              <span class="chart-legend">
+                <span class="legend--queue">cola</span>
+                <span class="legend--average">promedio</span>
+              </span>
+            </figcaption>
+            <div class="chart-canvas" data-chart="queue" set:html={queueSvg}></div>
+          </figure>
+
+          <details class="chart-data">
+            <summary>Ver datos de ambas gráficas</summary>
+            <div class="chart-data__body" data-chart-table set:html={seriesTable}></div>
+          </details>
+        </div>
+
+        <section class="sim-comparison" aria-labelledby="comparison-heading">
+          <div class="sim-comparison__head">
+            <h2 id="comparison-heading">Teoría frente a simulación</h2>
+            <p>La teoría es el largo plazo; la corrida es finita</p>
+          </div>
+          <div class="sim-comparison__scroll" data-comparison set:html={comparisonTable}></div>
+          <p class="sim-comparison__note">
+            Las diferencias son esperables: una sola corrida de 24 horas no reproduce exactamente el
+            estado estacionario. “Cerca” indica una diferencia menor o igual a 2 puntos porcentuales,
+            0,5 vehículos o 1 minuto según la métrica; “aceptable” amplía el margen a 5, 1,5 o 3.
+            Para reducir la variación, aumenta el horizonte o prueba varias semillas.
+          </p>
+        </section>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="wrap">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Cómo leerlo</p>
+          <h2>Un panel, tres advertencias.</h2>
+        </div>
+        <p>
+          El simulador no promete predecir el futuro. Sirve para razonar sobre capacidad, demanda y
+          espera con un mecanismo explícito.
+        </p>
+      </div>
+
+      <div class="sim-notes">
+        <article class="sim-note">
+          <h3>Una realización no es el promedio</h3>
+          <p>
+            La semilla fija una historia. Si cambias la semilla, cambian las llegadas y las salidas,
+            aunque el modelo sea idéntico. Compara escenarios con la misma semilla si quieres aislar
+            el efecto de un parámetro; cambia de semilla para explorar la variabilidad.
+            <Citation ids={[1, 2]} />
+          </p>
+        </article>
+        <article class="sim-note">
+          <h3>La teoría supone estado estacionario</h3>
+          <p>
+            La fórmula M/M/c/K describe el largo plazo. Una ventana de 24 horas puede estar lejos de
+            ese régimen, sobre todo con colas llenas y rechazos correlacionados. Por eso el panel
+            muestra ambos valores y una lectura de cercanía. <Citation ids={[3, 4]} />
+          </p>
+        </article>
+        <article class="sim-note">
+          <h3>El calentamiento no es decoración</h3>
+          <p>
+            El primer 15 % del horizonte se descarta para que el lote no arranque vacío. Si el
+            horizonte es muy corto, la ventana medida se reduce y las métricas se vuelven más
+            sensibles a unos pocos eventos. <Citation ids={[6]} />
+          </p>
+        </article>
+        <article class="sim-note">
+          <h3>La espera depende de la cola, no solo de las plazas</h3>
+          <p>
+            Añadir plazas reduce la ocupación; limitar la cola cambia el rechazo. La ley de Little
+            permite traducir esos efectos a tiempo medio, pero no decide qué nivel de servicio es
+            aceptable: eso es una decisión de política. <Citation ids={[5, 7]} />
+          </p>
+        </article>
+      </div>
+
+      <div class="notice">
+        <p>
+          <strong>Requiere JavaScript:</strong> el cálculo ocurre por completo en tu navegador. No se
+          envían parámetros a ningún servidor, no hay cuentas ni cookies y la URL solo guarda el
+          escenario para que puedas compartirlo. El escenario base también está calculado en el HTML
+          inicial para que el contenido sea legible sin ejecutar scripts.
+        </p>
+      </div>
+
+      <div class="button-row">
+        <a class="text-link" href={withBase('/teoria/')}>Repasar las fórmulas</a>
+        <a class="text-link" href={withBase('/caso-myspot/')}>Leer el caso MySpot</a>
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<script>
+  import {
+    formatInteger,
+    formatNumber,
+  } from '../lib/simulation/format';
+  import { renderOccupancyChart, renderQueueChart, renderSeriesTable } from '../lib/charts';
+  import { describeResult, renderComparisonTable } from '../lib/simulation/report';
+  import { simulate, validateSimulationParams } from '../lib/simulation/simulator';
+  import { DEFAULT_PARAMS, type SimulationParams } from '../lib/simulation/types';
+
+  type NumericField = Exclude<keyof SimulationParams, 'warmupFraction'>;
+
+  const fieldNames: NumericField[] = [
+    'arrivalRate',
+    'meanStayMinutes',
+    'spaces',
+    'queueCapacity',
+    'durationHours',
+    'seed',
+  ];
+
+  const form = document.querySelector<HTMLFormElement>('[data-sim-form]');
+  const stage = document.querySelector<HTMLElement>('[data-sim-stage]');
+  const board = document.querySelector<HTMLElement>('[data-sim-board]');
+  const status = document.querySelector<HTMLElement>('[data-status]');
+  const summary = document.querySelector<HTMLElement>('[data-summary]');
+  const comparison = document.querySelector<HTMLElement>('[data-comparison]');
+  const chartTable = document.querySelector<HTMLElement>('[data-chart-table]');
+  const occupancyChart = document.querySelector<HTMLElement>('[data-chart="occupancy"]');
+  const queueChart = document.querySelector<HTMLElement>('[data-chart="queue"]');
+  const frames = [...document.querySelectorAll<HTMLElement>('[data-chart-frame]')];
+  const seedOutput = document.querySelector<HTMLOutputElement>('[data-seed-out]');
+
+  const inputFor = (name: NumericField): HTMLInputElement | null =>
+    form?.querySelector<HTMLInputElement>(`input[name="${name}"]`) ?? null;
+
+  const setStatus = (text: string, state: 'ready' | 'calculating' | 'error'): void => {
+    if (status) status.textContent = text;
+    if (board) board.dataset.state = state;
+  };
+
+  const clearErrors = (): void => {
+    for (const name of fieldNames) {
+      const input = inputFor(name);
+      const error = document.querySelector<HTMLElement>(`[data-error-for="${name}"]`);
+      input?.removeAttribute('aria-invalid');
+      if (error) {
+        error.hidden = true;
+        error.textContent = '';
+      }
+    }
+  };
+
+  const parseForm = (): Partial<SimulationParams> | null => {
+    clearErrors();
+    const values: Partial<SimulationParams> = {};
+    for (const name of fieldNames) {
+      const input = inputFor(name);
+      const raw = input?.value.trim() ?? '';
+      values[name] = raw === '' ? Number.NaN : Number(raw);
+    }
+
+    const issues = validateSimulationParams(values);
+    if (issues.length === 0) return values;
+
+    for (const issue of issues) {
+      if (issue.field === 'warmupFraction') continue;
+      const input = inputFor(issue.field);
+      const error = document.querySelector<HTMLElement>(`[data-error-for="${issue.field}"]`);
+      input?.setAttribute('aria-invalid', 'true');
+      if (error) {
+        error.textContent = issue.message;
+        error.hidden = false;
+      }
+    }
+
+    const firstInvalid = form?.querySelector<HTMLInputElement>('[aria-invalid="true"]');
+    firstInvalid?.focus();
+    setStatus('revisa los campos', 'error');
+    return null;
+  };
+
+  const setKpi = (name: string, value: string): void => {
+    const target = document.querySelector<HTMLElement>(`[data-kpi="${name}"]`);
+    if (target) target.textContent = value;
+  };
+
+  const syncUrl = (params: Partial<SimulationParams>, clear = false): void => {
+    if (!window.history?.replaceState) return;
+    const url = new URL(window.location.href);
+    for (const name of fieldNames) {
+      if (clear) url.searchParams.delete(name);
+      else {
+        const value = params[name];
+        if (value !== undefined) url.searchParams.set(name, String(value));
+      }
+    }
+    url.hash = '';
+    window.history.replaceState(null, '', url);
+  };
+
+  const animateCharts = (): void => {
+    for (const frame of frames) {
+      frame.classList.remove('is-animated');
+      void frame.offsetWidth;
+      frame.classList.add('is-animated');
+    }
+  };
+
+  const renderResult = (result: ReturnType<typeof simulate>, sync = true): void => {
+    const { metrics, params } = result;
+
+    if (summary) summary.innerHTML = describeResult(result);
+    setKpi('occupancy', formatNumber(metrics.occupancy * 100));
+    setKpi('rejection', formatNumber(metrics.rejectionRate * 100));
+    setKpi('queue', formatNumber(metrics.averageQueue));
+    setKpi('wait', formatNumber(metrics.averageWaitMinutes));
+    setKpi('throughput', formatNumber(metrics.throughputPerHour));
+    setKpi('maxqueue', formatInteger(metrics.maxQueue));
+
+    const rejectionNote = document.querySelector<HTMLElement>('[data-kpi-note="rejection"]');
+    if (rejectionNote) rejectionNote.textContent = `de ${formatInteger(metrics.arrivals)} llegadas`;
+
+    const seedFoot = document.querySelector<HTMLElement>('[data-foot="seed"]');
+    const measuredFoot = document.querySelector<HTMLElement>('[data-foot="measured"]');
+    const arrivalsFoot = document.querySelector<HTMLElement>('[data-foot="arrivals"]');
+    const rejectedFoot = document.querySelector<HTMLElement>('[data-foot="rejected"]');
+    if (seedFoot) seedFoot.textContent = String(params.seed);
+    if (measuredFoot) measuredFoot.textContent = `${formatNumber(metrics.measuredHours)} h`;
+    if (arrivalsFoot) arrivalsFoot.textContent = formatInteger(metrics.arrivals);
+    if (rejectedFoot) rejectedFoot.textContent = formatInteger(metrics.rejected);
+    if (seedOutput) seedOutput.textContent = String(params.seed);
+
+    if (occupancyChart) occupancyChart.innerHTML = renderOccupancyChart(result);
+    if (queueChart) queueChart.innerHTML = renderQueueChart(result);
+    if (chartTable) chartTable.innerHTML = renderSeriesTable(result);
+    if (comparison) comparison.innerHTML = renderComparisonTable(result);
+
+    animateCharts();
+    if (sync) syncUrl(params);
+    setStatus('listo', 'ready');
+  };
+
+  let runToken = 0;
+
+  const run = (params: Partial<SimulationParams>, sync = true): void => {
+    const token = runToken + 1;
+    runToken = token;
+    setStatus('calculando', 'calculating');
+    stage?.setAttribute('aria-busy', 'true');
+
+    requestAnimationFrame(() => {
+      if (token !== runToken) return;
+      try {
+        const result = simulate(params);
+        renderResult(result, sync);
+      } catch (error) {
+        console.error(error);
+        setStatus('error de cálculo', 'error');
+        if (summary) {
+          summary.textContent =
+            'No se pudo completar la simulación con estos valores. Revisa los parámetros e inténtalo de nuevo.';
+        }
+      } finally {
+        stage?.setAttribute('aria-busy', 'false');
+      }
+    });
+  };
+
+  if (form) {
+    form.noValidate = true;
+
+    form.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const params = parseForm();
+      if (params) run(params);
+    });
+
+    document.querySelector<HTMLButtonElement>('[data-reset]')?.addEventListener('click', () => {
+      for (const name of fieldNames) {
+        const input = inputFor(name);
+        if (input) input.value = String(DEFAULT_PARAMS[name]);
+      }
+      clearErrors();
+      syncUrl(DEFAULT_PARAMS, true);
+      run(DEFAULT_PARAMS, false);
+    });
+
+    document.querySelector<HTMLButtonElement>('[data-randomize]')?.addEventListener('click', () => {
+      const seedInput = inputFor('seed');
+      if (!seedInput) return;
+      const random = new Uint32Array(1);
+      crypto.getRandomValues(random);
+      seedInput.value = String((random[0] ?? 0) % 2_147_483_648);
+      const params = parseForm();
+      if (params) run(params);
+    });
+
+    form.addEventListener('input', () => {
+      const seedInput = inputFor('seed');
+      if (seedOutput && seedInput) seedOutput.textContent = seedInput.value || '—';
+    });
+
+    const query = new URLSearchParams(window.location.search);
+    const hasQueryParams = fieldNames.some((name) => query.has(name));
+    if (hasQueryParams) {
+      for (const name of fieldNames) {
+        const input = inputFor(name);
+        const value = query.get(name);
+        if (input && value !== null) input.value = value;
+      }
+      const params = parseForm();
+      if (params) run(params, false);
+    }
+  }
+</script>

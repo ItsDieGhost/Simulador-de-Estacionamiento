@@ -1,0 +1,47 @@
+{
+  "name": "simulador-estacionamiento",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Sitio educativo y simulador interactivo de estacionamiento con Monte Carlo y teoría de colas (caso MySpot).",
+  "author": "Diego Arbeláez",
+  "license": "MIT",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "postbuild": "node scripts/finalize-build.mjs",
+    "preview": "astro preview",
+    "check": "astro check",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "audit:html": "node scripts/audit-html.mjs",
+    "check:links": "node scripts/check-links.mjs",
+    "audit:deps": "npm audit --audit-level=high",
+    "verify": "npm run check && npm run lint && npm run test && npm run build && npm run audit:html && npm run check:links",
+    "generate:og": "node scripts/generate-og.mjs"
+  },
+  "dependencies": {
+    "@astrojs/sitemap": "^3.7.5",
+    "@fontsource-variable/archivo": "^5.3.0",
+    "@fontsource/ibm-plex-mono": "^5.3.0",
+    "@fontsource/saira-stencil-one": "^5.3.0",
+    "astro": "^7.4.12"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.12",
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^24.10.1",
+    "eslint": "^10.0.1",
+    "eslint-plugin-astro": "^1.1.2",
+    "globals": "^16.5.0",
+    "prettier": "^3.7.4",
+    "prettier-plugin-astro": "^0.14.1",
+    "sharp": "^0.35.5",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.73.0",
+    "vitest": "^5.1.0"
+  }
+}

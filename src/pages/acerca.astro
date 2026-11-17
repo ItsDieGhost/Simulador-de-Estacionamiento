@@ -1,0 +1,412 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Citation from '../components/Citation.astro';
+import { compliance, revisions, site } from '../data/site';
+import { references } from '../data/references';
+import { withBase } from '../lib/paths';
+
+const title = 'Acerca del proyecto y cumplimiento · MySpot';
+const description =
+  'Alcance, metodología, historial de revisiones, medidas de seguridad, accesibilidad, rendimiento y tabla de cumplimiento de los 20 puntos del proyecto MySpot.';
+
+const totalPoints = compliance.reduce(
+  (total, item) => total + Number(item.points.replace(',', '.')),
+  0
+);
+const fulfilled = compliance.filter((item) => item.status === 'Cumplido').length;
+const partial = compliance.filter((item) => item.status === 'Parcial').length;
+
+const statusClass = (status: (typeof compliance)[number]['status']): string => {
+  if (status === 'Cumplido') return 'status status--ok';
+  if (status === 'Parcial') return 'status status--partial';
+  return 'status status--pending';
+};
+
+const sections = [
+  { id: 'proyecto', label: 'Qué es MySpot' },
+  { id: 'cumplimiento', label: 'Matriz de 20 puntos' },
+  { id: 'historial', label: 'Historial de revisiones' },
+  { id: 'seguridad', label: 'Seguridad' },
+  { id: 'accesibilidad', label: 'Accesibilidad' },
+  { id: 'rendimiento', label: 'Rendimiento y pruebas' },
+];
+---
+
+<BaseLayout
+  title={title}
+  description={description}
+  breadcrumbLabel="Acerca de"
+>
+  <header class="page-header">
+    <div class="wrap">
+      <p class="eyebrow">Proyecto y transparencia</p>
+      <h1>Un simulador que también muestra sus costuras.</h1>
+      <p class="lede">
+        MySpot es un proyecto académico de {site.institution}: explica el modelo, permite
+        experimentar y publica cómo se construyó, qué se verificó y qué límites quedan.
+      </p>
+      <div class="page-header__meta">
+        <span>{totalPoints.toLocaleString('es-VE')} puntos de matriz</span>
+        <span>{references.length} fuentes APA</span>
+        <span>Revisión: 17 de noviembre de 2026</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="wrap doc-layout">
+    <aside class="doc-aside">
+      <nav class="toc" aria-labelledby="toc-title">
+        <h2 id="toc-title">En esta página</h2>
+        <ol>
+          {
+            sections.map((section, index) => (
+              <li>
+                <a href={`#${section.id}`} data-number={String(index + 1).padStart(2, '0')}>
+                  {section.label}
+                </a>
+              </li>
+            ))
+          }
+        </ol>
+      </nav>
+      <p class="doc-aside__note">
+        La tabla de cumplimiento es una lista de comprobación, no una certificación externa.
+        Cada fila indica dónde se puede revisar la evidencia.
+      </p>
+    </aside>
+
+    <article class="prose">
+      <h2 id="proyecto">Qué es MySpot</h2>
+      <p class="lead-in">
+        Un estacionamiento universitario parece un problema de espacio; en realidad es un sistema
+        de espera. MySpot convierte esa intuición en un modelo M/M/c/K, lo simula con una semilla
+        reproducible y contrasta el resultado con la teoría.
+      </p>
+      <p>
+        El sitio nació como entrega de {site.program} en {site.institution}. No representa a un
+        estacionamiento real ni promete una aplicación comercial: es un laboratorio educativo para
+        discutir capacidad, cola, rechazo y espera con datos explícitos. El caso MySpot es un
+        escenario didáctico, no una medición de campo.
+      </p>
+
+      <div class="author-card">
+        <div class="author-card__monogram" aria-hidden="true">DA</div>
+        <div>
+          <p class="eyebrow">Autor</p>
+          <h3>{site.author}</h3>
+          <p>
+            {site.institution} · {site.program}. Diseño, modelo, implementación y verificación del
+            sitio. Las fuentes externas conservan sus propias licencias.
+          </p>
+          <p>
+            <a href="mailto:darbelaezroballo@gmail.com">darbelaezroballo@gmail.com</a>
+            · <a href={site.repoUrl} rel="noopener noreferrer" target="_blank">repositorio</a>
+          </p>
+        </div>
+      </div>
+
+      <h2 id="cumplimiento">Matriz de 20 puntos</h2>
+      <p>
+        La matriz agrupa los requisitos del proyecto en nueve criterios que suman
+        <strong>{totalPoints.toLocaleString('es-VE')} puntos</strong>. En esta revisión hay
+        {fulfilled} criterios cumplidos y {partial} parciales. Los estados parciales señalan
+        verificaciones que dependen de una ejecución reproducible, no excusas.
+      </p>
+
+      <div class="compliance-wrap">
+        <table class="compliance-table">
+          <caption>
+            Tabla 1. Cumplimiento de los criterios del proyecto y evidencia verificable.
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col">Criterio y aceptación</th>
+              <th scope="col">Pts.</th>
+              <th scope="col">Evidencia</th>
+              <th scope="col">Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            {
+              compliance.map((item) => (
+                <tr>
+                  <th scope="row" id={`criterio-${item.id}`}>
+                    {item.criterion}
+                    <span class="compliance-table__detail">{item.acceptance}</span>
+                  </th>
+                  <td class="num">{item.points}</td>
+                  <td>
+                    {item.evidence}
+                    {item.note && <span class="compliance-table__note">{item.note}</span>}
+                  </td>
+                  <td>
+                    <span class={statusClass(item.status)}>{item.status}</span>
+                  </td>
+                </tr>
+              ))
+            }
+          </tbody>
+        </table>
+      </div>
+      <p class="table-note">
+        Convención: <strong>Cumplido</strong> significa que la evidencia está publicada;
+        <strong>Parcial</strong>, que falta una verificación o una acción externa. La matriz se
+        actualiza al cerrar la auditoría.
+      </p>
+
+      <h2 id="historial">Historial de revisiones</h2>
+      <p>
+        Cada cambio importante queda fechado. La fecha de última revisión del sitio se genera
+        desde una constante y aparece al pie de todas las páginas.
+      </p>
+      <ol class="revision-list">
+        {
+          revisions.map((revision) => (
+            <li class="revision">
+              <span class="revision__date">
+                <time datetime={revision.date}>{revision.label}</time>
+              </span>
+              <div>
+                <h3>{revision.title}</h3>
+                <p>{revision.details}</p>
+                <p class="revision__tags">
+                  {revision.tags.map((tag) => (
+                    <span class="tag">{tag}</span>
+                  ))}
+                </p>
+              </div>
+            </li>
+          ))
+        }
+      </ol>
+
+      <h2 id="seguridad">Seguridad</h2>
+      <p>
+        El sitio es estático: no hay inicio de sesión, base de datos ni datos personales que
+        procesar. La seguridad se concentra en reducir la superficie del navegador, evitar
+        dependencias innecesarias y dejar un canal claro para reportar problemas.
+      </p>
+      <div class="security-list">
+        <div class="security-item">
+          <span class="security-item__mark" aria-hidden="true">CSP</span>
+          <div>
+            <h3>Política de seguridad de contenido</h3>
+            <p>
+              Astro genera una CSP con hashes para el JSON-LD y el CSS crítico. La política no usa
+              <code>unsafe-inline</code> ni <code>unsafe-eval</code>; los scripts y estilos se
+              sirven desde el mismo origen. El formulario declara <code>form-action 'none'</code>.
+            </p>
+          </div>
+        </div>
+        <div class="security-item">
+          <span class="security-item__mark" aria-hidden="true">TLS</span>
+          <div>
+            <h3>HTTPS y cabeceras del hosting</h3>
+            <p>
+              GitHub Pages sirve el sitio por HTTPS cuando “Enforce HTTPS” está activo. Esa opción
+              se configura en el repositorio. Las cabeceras HTTP personalizadas, como HSTS, no son
+              configurables en GitHub Pages; la CSP va como <code>&lt;meta&gt;</code>. Por eso no se
+              incluye <code>frame-ancestors</code>, que el navegador ignoraría en una meta: la
+              defensa contra clickjacking queda limitada por el hosting y se documenta así.
+            </p>
+          </div>
+        </div>
+        <div class="security-item">
+          <span class="security-item__mark" aria-hidden="true">DEP</span>
+          <div>
+            <h3>Dependencias y cadena de suministro</h3>
+            <p>
+              El proyecto conserva <code>package-lock.json</code>, ejecuta <code>npm audit</code> y
+              usa Dependabot para revisar actualizaciones. No se cargan analíticas, fuentes desde
+              terceros ni scripts de CDN.
+            </p>
+          </div>
+        </div>
+        <div class="security-item">
+          <span class="security-item__mark" aria-hidden="true">REF</span>
+          <div>
+            <h3>Enlaces y contenido mixto</h3>
+            <p>
+              La política de referencia es <code>strict-origin-when-cross-origin</code>. Los
+              enlaces externos abren en otra pestaña con <code>rel="noopener noreferrer"</code> y
+              todos los recursos del sitio son locales o datos generados en el navegador.
+            </p>
+          </div>
+        </div>
+        <div class="security-item">
+          <span class="security-item__mark" aria-hidden="true">RFC</span>
+          <div>
+            <h3>Divulgación responsable</h3>
+            <p>
+              El archivo <a href={withBase('/.well-known/security.txt')}>security.txt</a> sigue el
+              RFC 9116 <Citation ids={[14]} /> e incluye contacto, política, fecha de expiración y
+              URL canónica. Para reportar un problema, escribe a
+              <a href="mailto:darbelaezroballo@gmail.com?subject=Seguridad%20MySpot">darbelaezroballo@gmail.com</a>.
+            </p>
+          </div>
+        </div>
+        <div class="security-item">
+          <span class="security-item__mark" aria-hidden="true">0</span>
+          <div>
+            <h3>Datos y rastreadores</h3>
+            <p>
+              La simulación corre en memoria del navegador. No se envían parámetros a un servidor,
+              no se usan cookies de seguimiento y no hay publicidad. Los enlaces profundos del
+              simulador solo cambian la URL local.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <h2 id="accesibilidad">Accesibilidad</h2>
+      <p>
+        El objetivo es WCAG 2.2 nivel AA <Citation ids={[8]} />. La estructura usa un solo
+        <code>h1</code> por página, landmarks semánticos, enlace de salto, migas de pan y foco
+        visible. La navegación principal funciona con teclado y el menú móvil es un
+        <code>details</code> nativo.
+      </p>
+      <ul class="check-list">
+        <li>Texto base de 16 px o más y contraste revisado en tema claro y oscuro.</li>
+        <li>Objetivos táctiles de al menos 44 px en controles principales.</li>
+        <li>Formulario con <code>label</code>, ayuda, errores asociados y estado anunciado.</li>
+        <li>Gráficos SVG con título, descripción y tabla de datos alternativa.</li>
+        <li>Fórmulas en MathML nativo <Citation ids={[9]} />, no imágenes de texto.</li>
+        <li>Respeto a <code>prefers-reduced-motion</code>; sin animaciones imprescindibles.</li>
+      </ul>
+      <p>
+        No se declara conformidad formal sin una auditoría manual con lector de pantalla. Las
+        pruebas automáticas y de teclado se registran en la sección de rendimiento; las
+        limitaciones se corrigen antes de presentar el sitio como cerrado.
+      </p>
+
+      <h2 id="rendimiento">Rendimiento y pruebas</h2>
+      <p>
+        El sitio se sirve como archivos estáticos, sin framework de cliente. La única página con
+        JavaScript propio es el simulador, que reutiliza el mismo módulo de cálculo del build. La
+        meta es Lighthouse móvil ≥ 95 en las cuatro categorías, LCP &lt; 2 s, CLS &lt; 0,05 e
+        INP &lt; 200 ms.
+      </p>
+
+      <div class="table-wrap">
+        <table class="data-table">
+          <caption>
+            Tabla 2. Umbrales de rendimiento y resultados de la auditoría móvil.
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col">Métrica</th>
+              <th scope="col">Umbral</th>
+              <th scope="col">Resultado móvil</th>
+              <th scope="col">Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">Rendimiento</th>
+              <td>≥ 95</td>
+              <td>Por medir</td>
+              <td><span class="status status--pending">Pendiente</span></td>
+            </tr>
+            <tr>
+              <th scope="row">Accesibilidad</th>
+              <td>≥ 95</td>
+              <td>Por medir</td>
+              <td><span class="status status--pending">Pendiente</span></td>
+            </tr>
+            <tr>
+              <th scope="row">Buenas prácticas</th>
+              <td>≥ 95</td>
+              <td>Por medir</td>
+              <td><span class="status status--pending">Pendiente</span></td>
+            </tr>
+            <tr>
+              <th scope="row">SEO</th>
+              <td>≥ 95</td>
+              <td>Por medir</td>
+              <td><span class="status status--pending">Pendiente</span></td>
+            </tr>
+            <tr>
+              <th scope="row">LCP</th>
+              <td>&lt; 2,0 s</td>
+              <td>Por medir</td>
+              <td><span class="status status--pending">Pendiente</span></td>
+            </tr>
+            <tr>
+              <th scope="row">CLS</th>
+              <td>&lt; 0,05</td>
+              <td>Por medir</td>
+              <td><span class="status status--pending">Pendiente</span></td>
+            </tr>
+            <tr>
+              <th scope="row">INP</th>
+              <td>&lt; 200 ms</td>
+              <td>Por medir</td>
+              <td><span class="status status--pending">Pendiente</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="table-note">
+        Los valores se publican después de ejecutar Lighthouse sobre el build de producción. No se
+        presentan estimaciones como resultados.
+      </p>
+
+      <h3>Anchos comprobados</h3>
+      <div class="table-wrap">
+        <table class="data-table">
+          <caption>
+            Tabla 3. Prueba de los cuatro anchos exigidos, sin desplazamiento horizontal.
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col">Ancho</th>
+              <th scope="col">Uso representativo</th>
+              <th scope="col">Resultado</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">360 px</th>
+              <td>Móvil estrecho</td>
+              <td>Por comprobar</td>
+            </tr>
+            <tr>
+              <th scope="row">768 px</th>
+              <td>Tableta vertical</td>
+              <td>Por comprobar</td>
+            </tr>
+            <tr>
+              <th scope="row">1024 px</th>
+              <td>Portátil pequeño</td>
+              <td>Por comprobar</td>
+            </tr>
+            <tr>
+              <th scope="row">1440 px</th>
+              <td>Escritorio</td>
+              <td>Por comprobar</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="table-note">
+        La comprobación incluye <code>documentElement.scrollWidth</code>, captura visual y revisión
+        de tablas, MathML y gráficos. Los resultados se actualizan en esta misma tabla.
+      </p>
+
+      <h3>Verificación técnica</h3>
+      <ul class="check-list">
+        <li><code>astro check</code>: tipos y plantillas.</li>
+        <li><code>eslint</code>: reglas de JavaScript, TypeScript y Astro.</li>
+        <li><code>vitest</code>: pruebas del motor de simulación.</li>
+        <li><code>astro build</code>: generación estática y CSP.</li>
+        <li><code>audit:html</code> y <code>check:links</code>: metadatos, enlaces y archivos finales.</li>
+      </ul>
+
+      <p>
+        Si algo no cuadra, la prioridad es corregirlo y dejar rastro en el
+        <a href={withBase('/acerca/#historial')}>historial</a>, no maquillar la tabla.
+      </p>
+    </article>
+  </div>
+</BaseLayout>
+

@@ -1,0 +1,266 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Citation from '../components/Citation.astro';
+import { site } from '../data/site';
+import { simulate } from '../lib/simulation/simulator';
+import { DEFAULT_PARAMS } from '../lib/simulation/types';
+import { formatMinutes, formatNumber, formatPercent } from '../lib/simulation/format';
+import { withBase } from '../lib/paths';
+
+const demo = simulate(DEFAULT_PARAMS);
+const occupancyPercent = demo.metrics.occupancy * 100;
+const occupiedSlots = 15;
+const lotSlots = Array.from({ length: 16 }, (_, index) => index);
+const busySlots = new Set([0, 1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 12, 13, 14, 15]);
+const title = 'MySpot · Simulador de estacionamiento';
+const description =
+  'Simulador educativo de estacionamiento con teoría de colas M/M/c/K, Monte Carlo reproducible y un caso de estudio inspirado en MySpot.';
+
+const structuredData = {
+  '@type': 'LearningResource',
+  name: site.longName,
+  description,
+  learningResourceType: 'Simulación interactiva',
+  educationalLevel: 'Educación superior',
+  inLanguage: 'es',
+  isAccessibleForFree: true,
+  about: ['Teoría de colas', 'Simulación de eventos discretos', 'Método de Monte Carlo'],
+};
+---
+
+<BaseLayout title={title} description={description} structuredData={structuredData}>
+  <section class="hero wrap">
+    <div class="hero__copy">
+      <p class="eyebrow">Proyecto académico · UNEFA Táchira</p>
+      <h1>Estacionar también es un problema de colas.</h1>
+      <p class="lede">
+        MySpot simula un estacionamiento universitario durante 24 horas: los autos llegan sin avisar,
+        ocupan una plaza durante un tiempo variable y, cuando el lote se llena, esperan o se van.
+        Un pequeño laboratorio para ver cómo el azar se convierte en ocupación, rechazo y espera.
+      </p>
+      <div class="hero__actions button-row">
+        <a class="button" href={withBase('/simulador/')}>Abrir el simulador</a>
+        <a class="text-link" href={withBase('/teoria/')}>Entender el modelo</a>
+      </div>
+      <dl class="hero__facts">
+        <div class="hero__fact">
+          <dt>Plazas</dt>
+          <dd>{DEFAULT_PARAMS.spaces} en el escenario base</dd>
+        </div>
+        <div class="hero__fact">
+          <dt>Cola</dt>
+          <dd>{DEFAULT_PARAMS.queueCapacity} vehículos de espera</dd>
+        </div>
+        <div class="hero__fact">
+          <dt>Horizonte</dt>
+          <dd>{DEFAULT_PARAMS.durationHours} horas simuladas</dd>
+        </div>
+        <div class="hero__fact">
+          <dt>Semilla</dt>
+          <dd>{DEFAULT_PARAMS.seed}, resultados reproducibles</dd>
+        </div>
+      </dl>
+    </div>
+
+    <div class="lot-board">
+      <div class="lot-board__head">
+        <span>Panel demo · escenario base</span>
+        <span class="lot-board__live">simulación determinista</span>
+      </div>
+      <div class="lot-board__plan">
+        <svg
+          class="lot-plan"
+          viewBox="0 0 560 300"
+          role="img"
+          aria-labelledby="home-plan-title home-plan-desc"
+        >
+          <title id="home-plan-title">Plano esquemático de un estacionamiento con plazas ocupadas y libres</title>
+          <desc id="home-plan-desc">
+            Vista parcial de 16 plazas dispuestas en dos filas, con quince vehículos ocupando plazas.
+            Una cola de un vehículo espera en el carril central hacia la entrada.
+          </desc>
+          <rect class="lot-line" x="14" y="14" width="532" height="272" />
+          <text class="lot-label" x="30" y="34">SECTOR A · VISTA PARCIAL DE 16 PLAZAS</text>
+          <line class="lot-dash" x1="30" y1="150" x2="530" y2="150" />
+          <path class="lot-arrow" d="M452 150h56m-12-10 12 10-12 10" />
+          <text class="lot-label--accent" x="418" y="137" text-anchor="end">ENTRADA</text>
+          {
+            lotSlots.map((index) => {
+              const column = index % 8;
+              const row = index < 8 ? 0 : 1;
+              const x = 36 + column * 62;
+              const y = row === 0 ? 48 : 188;
+              const busy = busySlots.has(index);
+              return (
+                <g>
+                  <rect
+                    class={busy ? 'car car--busy' : 'car'}
+                    x={x}
+                    y={y}
+                    width="48"
+                    height="82"
+                    rx="2"
+                  />
+                  {busy && <rect class="lot-plan__car-window" x={x + 9} y={y + 14} width="30" height="16" rx="1" />}
+                  <text class="lot-label" x={x + 24} y={y + 76} text-anchor="middle">
+                    {String(index + 1).padStart(2, '0')}
+                  </text>
+                </g>
+              );
+            })
+          }
+          <rect class="car car--accent" x="252" y="128" width="54" height="26" rx="2" />
+          <text class="lot-label--accent" x="329" y="145">COLA 1</text>
+          <text class="lot-label" x="530" y="286" text-anchor="end">24 H · SEMILLA {DEFAULT_PARAMS.seed}</text>
+        </svg>
+      </div>
+      <div class="occupancy-meter">
+        <div class="occupancy-meter__top">
+          <span>Ocupación media</span>
+          <span class="occupancy-meter__value">{formatPercent(demo.metrics.occupancy)}</span>
+        </div>
+        <div class="occupancy-meter__track" aria-hidden="true">
+          <svg class="occupancy-meter__svg" viewBox="0 0 100 10" preserveAspectRatio="none">
+            <rect class="meter__fill" x="0" y="0" width={occupancyPercent} height="10" />
+          </svg>
+        </div>
+        <div class="occupancy-meter__top" aria-hidden="true">
+          <span>{occupiedSlots} de 16 plazas en el esquema</span>
+          <span>{formatNumber(demo.metrics.averageQueue)} en cola</span>
+        </div>
+      </div>
+      <div class="lot-board__caption">
+        <span>Rechazo {formatPercent(demo.metrics.rejectionRate)}</span>
+        <span>Espera media {formatMinutes(demo.metrics.averageWaitMinutes)}</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="wrap">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Tres capas</p>
+          <h2>Del supuesto al dato, sin cajas negras.</h2>
+        </div>
+        <p>
+          El sitio separa el modelo matemático, la simulación computacional y la lectura del caso.
+          Cada capa se puede revisar por separado y comparar con la anterior.
+        </p>
+      </div>
+
+      <div class="cards-grid">
+        <article class="card">
+          <div class="card__top">
+            <span class="tag tag--accent">Modelo</span>
+            <span class="card__index">01</span>
+          </div>
+          <h3>Colas M/M/c/K</h3>
+          <p>
+            Llegadas Poisson, permanencias exponenciales, plazas como servidores y una cola
+            limitada. La distribución estacionaria permite calcular rechazo y espera sin simular
+            cada auto. <Citation ids={[3, 4]} />
+          </p>
+          <a class="card__link" href={withBase('/teoria/')}>Ver la teoría</a>
+        </article>
+
+        <article class="card">
+          <div class="card__top">
+            <span class="tag">Simulación</span>
+            <span class="card__index">02</span>
+          </div>
+          <h3>Eventos discretos</h3>
+          <p>
+            El motor avanza de llegada en llegada y de salida en salida. Un generador con semilla
+            fija convierte cada corrida en un experimento repetible. <Citation ids={[1, 2, 6]} />
+          </p>
+          <a class="card__link" href={withBase('/simulador/')}>Probar el motor</a>
+        </article>
+
+        <article class="card">
+          <div class="card__top">
+            <span class="tag">Lectura</span>
+            <span class="card__index">03</span>
+          </div>
+          <h3>Capacidad y espera</h3>
+          <p>
+            Más plazas reducen el rechazo, pero no siempre eliminan la cola. La ley de Little
+            conecta ocupación, espera y flujo para interpretar el compromiso. <Citation ids={[5, 7]} />
+          </p>
+          <a class="card__link" href={withBase('/caso-myspot/')}>Leer el caso</a>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="wrap split split--wide-left">
+      <div class="prose">
+        <p class="eyebrow">Escenario base</p>
+        <h2>Una corrida de 24 horas, con todas las cartas a la vista.</h2>
+        <p>
+          El escenario base supone 45 llegadas por hora, una permanencia media de 75 minutos, 60
+          plazas y espacio para 10 vehículos en espera. Son supuestos didácticos, no mediciones del
+          campus: sirven para mostrar cómo interactúan la demanda y la capacidad.
+        </p>
+        <p>
+          La simulación descarta el primer 15 % del horizonte para reducir el sesgo de arranque y
+          luego compara sus métricas con la predicción M/M/c/K. Esa doble lectura —simulación y
+          teoría— es la parte más útil del ejercicio: si ambas se alejan demasiado, hay que revisar
+          el modelo, el generador aleatorio o el tiempo simulado. <Citation ids={[2, 4]} />
+        </p>
+        <div class="notice">
+          <p>
+            <strong>Alcance:</strong> el resultado es una estimación condicionada por los supuestos.
+            No debe usarse para dimensionar un estacionamiento real sin datos de campo, validación y
+            análisis de sensibilidad.
+          </p>
+        </div>
+        <div class="button-row">
+          <a class="text-link" href={withBase('/caso-myspot/')}>Ver el caso completo</a>
+          <a class="text-link" href={withBase('/referencias/')}>Consultar las fuentes</a>
+        </div>
+      </div>
+
+      <aside class="scenario-card" aria-label="Resultados del escenario base">
+        <div class="scenario-card__head">
+          <span>Escenario base · 24 h</span>
+          <span>Semilla {DEFAULT_PARAMS.seed}</span>
+        </div>
+        <dl class="scenario-card__stats">
+          <div class="scenario-stat">
+            <dt>Ocupación</dt>
+            <dd>{formatPercent(demo.metrics.occupancy)}</dd>
+          </div>
+          <div class="scenario-stat">
+            <dt>Rechazo</dt>
+            <dd>{formatPercent(demo.metrics.rejectionRate)}</dd>
+          </div>
+          <div class="scenario-stat">
+            <dt>Cola media</dt>
+            <dd>{formatNumber(demo.metrics.averageQueue)} <span>veh</span></dd>
+          </div>
+        </dl>
+        <div class="scenario-card__foot">
+          <span>Llegadas medidas: {formatNumber(demo.metrics.arrivals, 0)}</span>
+          <a href={withBase('/simulador/')}>Modificar y ejecutar →</a>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="wrap">
+      <div class="cta-band">
+        <div>
+          <h2>Cambia una variable. Mira qué se mueve.</h2>
+          <p>
+            Ajusta llegadas, permanencia, plazas o cola. El simulador recalcula las 24 horas en tu
+            navegador y mantiene la semilla para que puedas comparar escenarios.
+          </p>
+        </div>
+        <a class="button" href={withBase('/simulador/')}>Ir al simulador</a>
+      </div>
+    </div>
+  </section>
+</BaseLayout>

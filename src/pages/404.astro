@@ -1,0 +1,29 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { withBase } from '../lib/paths';
+
+const title = 'Página no encontrada · MySpot';
+const description =
+  'La página solicitada no existe o cambió de dirección. Vuelve al inicio, consulta la teoría de colas o abre el simulador para continuar.';
+---
+
+<BaseLayout title={title} description={description} breadcrumbLabel="404" noindex>
+  <section class="wrap empty-state" aria-labelledby="not-found-title">
+    <p class="empty-state__code" aria-hidden="true">404</p>
+    <p class="eyebrow">Plaza no disponible</p>
+    <h1 id="not-found-title">Esta plaza está ocupada.</h1>
+    <p>
+      La dirección no existe, cambió de lugar o el enlace tiene un error. No hay cola para esta
+      página: elige otra entrada del estacionamiento.
+    </p>
+    <div class="empty-state__actions">
+      <a class="button button--primary" href={withBase('/')}>Volver al inicio</a>
+      <a class="button" href={withBase('/simulador/')}>Abrir el simulador</a>
+      <a class="button button--ghost" href={withBase('/teoria/')}>Leer la teoría</a>
+    </div>
+    <p class="empty-state__note">
+      Si llegaste desde un enlace interno, repórtalo en el
+      <a href={withBase('/acerca/#seguridad')}>canal de seguridad</a>.
+    </p>
+  </section>
+</BaseLayout>

@@ -1,0 +1,314 @@
+---
+import '../styles/global.css';
+import archivoFont from '../assets/fonts/archivo-latin-wght-normal.woff2?url';
+import sairaFont from '../assets/fonts/saira-stencil-one-latin-400-normal.woff2?url';
+import plexMonoFont from '../assets/fonts/ibm-plex-mono-latin-400-normal.woff2?url';
+import { site, navigation, lastReviewedLabel } from '../data/site';
+import { stripBase, withBase } from '../lib/paths';
+
+export interface Breadcrumb {
+  label: string;
+  path?: string;
+}
+
+interface Props {
+  title: string;
+  description: string;
+  noindex?: boolean;
+  breadcrumbLabel?: string;
+  breadcrumbs?: Breadcrumb[];
+  structuredData?: Record<string, unknown> | Record<string, unknown>[];
+}
+
+const {
+  title,
+  description,
+  noindex = false,
+  breadcrumbLabel,
+  breadcrumbs = [],
+  structuredData,
+} = Astro.props;
+
+const origin = Astro.site ?? new URL('https://ItsDieGhost.github.io');
+const canonicalUrl = new URL(Astro.url.pathname, origin).toString();
+const baseUrl = new URL(withBase('/'), origin).toString();
+const ogImageUrl = new URL(withBase(site.ogImage), origin).toString();
+const currentPath = stripBase(Astro.url.pathname);
+const crumbLabel = breadcrumbLabel ?? title.split(' · ')[0] ?? title;
+const websiteId = `${baseUrl}#website`;
+const authorId = `${baseUrl}#author`;
+const pageId = `${canonicalUrl}#webpage`;
+
+const isActive = (path: string): boolean =>
+  path === '/' ? currentPath === '/' : currentPath === path || currentPath.startsWith(path);
+
+const graph: Record<string, unknown>[] = [
+  {
+    '@type': 'WebSite',
+    '@id': websiteId,
+    url: baseUrl,
+    name: site.name,
+    alternateName: site.longName,
+    description: site.description,
+    inLanguage: 'es',
+    publisher: { '@id': authorId },
+  },
+  {
+    '@type': 'Person',
+    '@id': authorId,
+    name: site.author,
+    affiliation: {
+      '@type': 'CollegeOrUniversity',
+      name: `${site.institution} · ${site.program}`,
+    },
+  },
+  {
+    '@type': 'WebPage',
+    '@id': pageId,
+    url: canonicalUrl,
+    name: title,
+    description,
+    inLanguage: 'es',
+    dateModified: site.lastReviewed,
+    isPartOf: { '@id': websiteId },
+    author: { '@id': authorId },
+  },
+];
+
+if (currentPath !== '/') {
+  const items: Record<string, unknown>[] = [
+    {
+      '@type': 'ListItem',
+      position: 1,
+      name: 'Inicio',
+      item: baseUrl,
+    },
+    ...breadcrumbs.map((crumb, index) => ({
+      '@type': 'ListItem',
+      position: index + 2,
+      name: crumb.label,
+      item: crumb.path ? new URL(withBase(crumb.path), origin).toString() : canonicalUrl,
+    })),
+    {
+      '@type': 'ListItem',
+      position: breadcrumbs.length + 2,
+      name: crumbLabel,
+      item: canonicalUrl,
+    },
+  ];
+
+  graph.push({
+    '@type': 'BreadcrumbList',
+    '@id': `${canonicalUrl}#breadcrumb`,
+    itemListElement: items,
+  });
+}
+
+if (structuredData) {
+  graph.push(...(Array.isArray(structuredData) ? structuredData : [structuredData]));
+}
+
+const jsonLd = { '@context': 'https://schema.org', '@graph': graph };
+const year = site.lastReviewed.slice(0, 4);
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta name="author" content={site.author} />
+    <meta name="generator" content={Astro.generator} />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <meta
+      name="robots"
+      content={noindex ? 'noindex, nofollow' : 'index, follow, max-image-preview:large'}
+    />
+    <meta name="color-scheme" content="light dark" />
+    <link
+      rel="preload"
+      href={archivoFont}
+      as="font"
+      type="font/woff2"
+      crossorigin="anonymous"
+    />
+    <link
+      rel="preload"
+      href={sairaFont}
+      as="font"
+      type="font/woff2"
+      crossorigin="anonymous"
+    />
+    <link
+      rel="preload"
+      href={plexMonoFont}
+      as="font"
+      type="font/woff2"
+      crossorigin="anonymous"
+    />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content={site.themeColorLight} />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content={site.themeColorDark} />
+
+    <link rel="canonical" href={canonicalUrl} />
+    <link rel="icon" href={withBase('/favicon.svg')} type="image/svg+xml" />
+    <link rel="sitemap" href={withBase('/sitemap-index.xml')} type="application/xml" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content={site.name} />
+    <meta property="og:locale" content={site.locale} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:image" content={ogImageUrl} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:alt" content={site.ogImageAlt} />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImageUrl} />
+    <meta name="twitter:image:alt" content={site.ogImageAlt} />
+
+    <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+  </head>
+  <body>
+    <a class="skip-link" href="#contenido">Saltar al contenido</a>
+    <div class="signal-bar" aria-hidden="true"></div>
+
+    <header class="site-header">
+      <div class="wrap header-inner">
+        <a class="brand" href={withBase('/')} aria-label="MySpot, ir al inicio">
+          <span class="brand__mark" aria-hidden="true">M</span>
+          <span>
+            <span class="brand__word">MySpot</span>
+            <span class="brand__sub">Simulador de estacionamiento</span>
+          </span>
+        </a>
+
+        <details class="nav-details">
+          <summary>Menú</summary>
+          <nav class="site-nav" aria-label="Navegación principal">
+            <ul>
+              {
+                navigation.map((item) => (
+                  <li>
+                    <a
+                      href={withBase(item.path)}
+                      aria-current={isActive(item.path) ? 'page' : undefined}
+                    >
+                      {item.label}
+                    </a>
+                  </li>
+                ))
+              }
+            </ul>
+          </nav>
+        </details>
+      </div>
+    </header>
+
+    {
+      currentPath !== '/' && (
+        <nav class="breadcrumbs" aria-label="Migas de pan">
+          <div class="wrap">
+            <ol>
+              <li>
+                <a href={withBase('/')}>Inicio</a>
+              </li>
+              {breadcrumbs.map((crumb) => (
+                <li>
+                  {crumb.path ? <a href={withBase(crumb.path)}>{crumb.label}</a> : crumb.label}
+                </li>
+              ))}
+              <li>
+                <span aria-current="page">{crumbLabel}</span>
+              </li>
+            </ol>
+          </div>
+        </nav>
+      )
+    }
+
+    <main id="contenido">
+      <slot />
+      <div class="wrap">
+        <div class="page-review">
+          <p class="last-reviewed">
+            Última revisión:
+            <time datetime={site.lastReviewed}>{lastReviewedLabel}</time>
+          </p>
+          <a class="page-review__link" href={withBase('/acerca/#historial')}>
+            Historial de cambios
+          </a>
+        </div>
+      </div>
+    </main>
+
+
+    <footer class="site-footer">
+      <div class="wrap">
+        <div class="footer-grid">
+          <div class="footer-brand">
+            <a class="brand" href={withBase('/')} aria-label="MySpot, ir al inicio">
+              <span class="brand__mark" aria-hidden="true">M</span>
+              <span>
+                <span class="brand__word">MySpot</span>
+                <span class="brand__sub">Simulador de estacionamiento</span>
+              </span>
+            </a>
+            <p>
+              Un proyecto académico sobre teoría de colas, Monte Carlo y gestión de estacionamientos.
+              Todos los datos del simulador se generan en el navegador.
+            </p>
+            <p class="footer-stamp">{site.institution} · {site.program}</p>
+          </div>
+
+          <div>
+            <h2 class="footer-heading">Secciones</h2>
+            <nav aria-label="Mapa del sitio">
+              <ul class="footer-links">
+                {
+                  navigation.map((item) => (
+                    <li>
+                      <a href={withBase(item.path)}>{item.label}</a>
+                    </li>
+                  ))
+                }
+              </ul>
+            </nav>
+          </div>
+
+          <div>
+            <h2 class="footer-heading">Recursos</h2>
+            <ul class="footer-links">
+              <li>
+                <a href={site.repoUrl} rel="noopener noreferrer" target="_blank">
+                  Repositorio<span class="sr-only"> (abre en otra pestaña)</span>
+                </a>
+              </li>
+              <li>
+                <a href={withBase('/.well-known/security.txt')}>security.txt</a>
+              </li>
+              <li>
+                <a href={withBase('/robots.txt')}>robots.txt</a>
+              </li>
+              <li>
+                <a href={withBase('/sitemap-index.xml')}>Sitemap</a>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="footer-meta">
+          <span>© {year} {site.author} · Contenido educativo</span>
+          <span>Sitio estático con Astro · Sin rastreadores</span>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>
+

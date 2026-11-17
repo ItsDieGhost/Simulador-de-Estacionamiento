@@ -1,0 +1,9 @@
+# Política de seguridad y contacto para reportes responsables.
+Contact: mailto:darbelaezroballo@gmail.com
+Contact: https://github.com/ItsDieGhost/simulador-estacionamiento/issues
+Expires: 2027-11-17T23:59:59.000Z
+Preferred-Languages: es, en
+Canonical: https://ItsDieGhost.github.io/simulador-estacionamiento/.well-known/security.txt
+Policy: https://ItsDieGhost.github.io/simulador-estacionamiento/acerca/
+# El sitio es estático y no procesa datos personales ni formularios.
+# Los reportes se atienden por correo o en el repositorio; no se ofrece programa de recompensas.

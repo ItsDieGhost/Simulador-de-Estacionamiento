@@ -1,0 +1,545 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Citation from '../components/Citation.astro';
+import { withBase } from '../lib/paths';
+
+const title = 'Teoría de colas y Monte Carlo · MySpot';
+const description =
+  'Modelo M/M/c/K paso a paso: supuestos, distribución estacionaria, ley de Little, Erlang B, simulación de eventos discretos y límites del enfoque.';
+
+const sections = [
+  { id: 'modelo', label: 'El sistema que modelamos' },
+  { id: 'distribucion', label: 'Distribución de estados' },
+  { id: 'metricas', label: 'Métricas y ley de Little' },
+  { id: 'erlang-b', label: 'Erlang B: el caso sin cola' },
+  { id: 'simulacion', label: 'Eventos discretos' },
+  { id: 'monte-carlo', label: 'Monte Carlo reproducible' },
+  { id: 'limites', label: 'Validación y límites' },
+];
+---
+
+<BaseLayout
+  title={title}
+  description={description}
+  breadcrumbLabel="Teoría"
+  structuredData={{
+    '@type': 'LearningResource',
+    name: title,
+    description,
+    learningResourceType: 'Artículo explicativo',
+    educationalLevel: 'Educación superior',
+    inLanguage: 'es',
+    isAccessibleForFree: true,
+  }}
+>
+  <header class="page-header">
+    <div class="wrap">
+      <p class="eyebrow">Fundamentos</p>
+      <h1>La teoría detrás de una plaza libre.</h1>
+      <p class="lede">
+        Un estacionamiento es un sistema de espera con capacidad finita. La teoría de colas
+        describe su comportamiento promedio; la simulación de eventos discretos reproduce una
+        historia posible. Aquí están los dos lenguajes y el puente entre ambos.
+      </p>
+      <div class="page-header__meta">
+        <span>Lectura estimada: 12 min</span>
+        <span>Modelo M/M/c/K</span>
+        <span>Fórmulas en MathML</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="wrap doc-layout">
+    <aside class="doc-aside">
+      <nav class="toc" aria-labelledby="toc-title">
+        <h2 id="toc-title">En esta página</h2>
+        <ol>
+          {
+            sections.map((section, index) => (
+              <li>
+                <a href={`#${section.id}`} data-number={String(index + 1).padStart(2, '0')}>
+                  {section.label}
+                </a>
+              </li>
+            ))
+          }
+        </ol>
+      </nav>
+      <p class="doc-aside__note">
+        ¿Prefieres ver el modelo funcionando? Abre el <a href={withBase('/simulador/')}>simulador</a>
+        y cambia la capacidad o la tasa de llegadas.
+      </p>
+    </aside>
+
+    <article class="prose">
+      <p class="lead-in">
+        La pregunta central es sencilla: si los autos llegan y se van a ritmos inciertos, ¿cuántas
+        plazas hacen falta para que la mayoría encuentre sitio sin esperar demasiado? La respuesta
+        depende de la demanda, de la duración de la estadía y de cuánta cola estamos dispuestos a
+        tolerar.
+      </p>
+
+      <h2 id="modelo">El sistema que modelamos</h2>
+      <p>
+        Representamos el estacionamiento como un sistema de colas con <strong>c servidores</strong>
+        (las plazas) y <strong>m posiciones de espera</strong> (la cola). Un vehículo que llega
+        cuando hay una plaza libre la ocupa de inmediato; si todas están ocupadas y la cola no está
+        llena, espera; si ambas están llenas, se retira. La capacidad total es
+        <math><mi>K</mi><mo>=</mo><mi>c</mi><mo>+</mo><mi>m</mi></math>. La disciplina es FCFS
+        (<em>first come, first served</em>): el primero en llegar a la cola es el primero en entrar.
+        <Citation ids={[3, 4]} />
+      </p>
+
+      <div class="table-wrap">
+        <table class="data-table">
+          <caption>Notación utilizada en el modelo y en el simulador.</caption>
+          <thead>
+            <tr>
+              <th scope="col">Símbolo</th>
+              <th scope="col">Significado</th>
+              <th scope="col">Unidad</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row"><math><mi>λ</mi></math></th>
+              <td>Tasa media de llegadas.</td>
+              <td>veh/h</td>
+            </tr>
+            <tr>
+              <th scope="row"><math><mi>E</mi><mo>[</mo><mi>S</mi><mo>]</mo></math></th>
+              <td>Permanencia media de un vehículo en una plaza.</td>
+              <td>min</td>
+            </tr>
+            <tr>
+              <th scope="row"><math><mi>μ</mi></math></th>
+              <td>Tasa de servicio: <math><mn>60</mn><mo>/</mo><mi>E</mi><mo>[</mo><mi>S</mi><mo>]</mo></math>.</td>
+              <td>veh/h</td>
+            </tr>
+            <tr>
+              <th scope="row"><math><mi>c</mi></math></th>
+              <td>Número de plazas (servidores).</td>
+              <td>plazas</td>
+            </tr>
+            <tr>
+              <th scope="row"><math><mi>m</mi></math></th>
+              <td>Vehículos que pueden esperar fuera del lote.</td>
+              <td>veh</td>
+            </tr>
+            <tr>
+              <th scope="row"><math><mi>K</mi></math></th>
+              <td>Capacidad total: <math><mi>c</mi><mo>+</mo><mi>m</mi></math>.</td>
+              <td>veh</td>
+            </tr>
+            <tr>
+              <th scope="row"><math><mi>a</mi></math></th>
+              <td>Carga ofrecida: <math><mi>λ</mi><mo>/</mo><mi>μ</mi></math>.</td>
+              <td>erlangs</td>
+            </tr>
+            <tr>
+              <th scope="row"><math><msub><mi>P</mi><mi>n</mi></msub></math></th>
+              <td>Probabilidad de que haya <math><mi>n</mi></math> vehículos en el sistema.</td>
+              <td>—</td>
+            </tr>
+            <tr>
+              <th scope="row"><math><msub><mi>L</mi><mi>q</mi></msub></math></th>
+              <td>Número medio de vehículos en cola.</td>
+              <td>veh</td>
+            </tr>
+            <tr>
+              <th scope="row"><math><msub><mi>W</mi><mi>q</mi></msub></math></th>
+              <td>Espera media de un vehículo aceptado.</td>
+              <td>min</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Supuestos, en voz alta</h3>
+      <ul>
+        <li>
+          <strong>Llegadas Poisson:</strong> los instantes entre llegadas son independientes y
+          exponenciales. Es una aproximación razonable para demanda agregada, no para un pico de
+          salida de clases perfectamente sincronizado.
+        </li>
+        <li>
+          <strong>Permanencias exponenciales:</strong> la tasa de salida no depende de cuánto tiempo
+          lleva el auto estacionado. En la práctica, una estadía puede tener una duración más
+          regular; el supuesto simplifica el análisis y se discute en los límites.
+        </li>
+        <li>
+          <strong>Población no finita:</strong> la tasa de llegadas no se reduce porque el lote esté
+          lleno. Si la demanda depende del estado, el modelo necesita otra formulación.
+        </li>
+        <li>
+          <strong>Sin reservas ni preferencias:</strong> cualquier plaza sirve para cualquier auto y
+          no hay tarifas, abonos ni prioridades.
+        </li>
+      </ul>
+      <p>
+        La aproximación de Poisson es cómoda porque hace que el futuro dependa solo del estado
+        actual. Para una revisión formal de las cadenas de nacimiento y muerte y de las condiciones
+        de estabilidad, se puede consultar la literatura especializada <Citation ids={[3, 4]} />.
+      </p>
+
+      <h2 id="distribucion">Distribución de estados</h2>
+      <p>
+        Sea <math><msub><mi>P</mi><mi>n</mi></msub></math> la probabilidad de que haya
+        <math><mi>n</mi></math> vehículos entre plazas y cola en el largo plazo, con
+        <math><mn>0</mn><mo>≤</mo><mi>n</mi><mo>≤</mo><mi>K</mi></math>. La tasa de llegadas es
+        <math><mi>λ</mi></math>; la tasa de servicio es <math><mi>n</mi><mi>μ</mi></math> cuando hay
+        <math><mi>n</mi></math> plazas ocupadas, limitada por <math><mi>c</mi><mi>μ</mi></math>.
+        Igualando flujos de entrada y salida se obtiene una distribución estacionaria.
+      </p>
+
+      <div class="formula">
+        <span class="formula__label">Probabilidad de estado · tramo sin cola</span>
+        <math display="block">
+          <mrow>
+            <msub><mi>P</mi><mi>n</mi></msub>
+            <mo>=</mo>
+            <msub><mi>P</mi><mn>0</mn></msub>
+            <mo>·</mo>
+            <mfrac>
+              <msup><mi>a</mi><mi>n</mi></msup>
+              <mrow><mi>n</mi><mo>!</mo></mrow>
+            </mfrac>
+            <mo>,</mo>
+            <mspace width="0.6em" />
+            <mn>0</mn><mo>≤</mo><mi>n</mi><mo>≤</mo><mi>c</mi>
+          </mrow>
+        </math>
+        <p class="formula__note">
+          Mientras haya plazas libres, cada llegada adicional multiplica la probabilidad por
+          <math><mi>a</mi><mo>/</mo><mi>n</mi></math>. Es el comportamiento de una cola M/M/c sin
+          límite de espera.
+        </p>
+      </div>
+
+      <div class="formula">
+        <span class="formula__label">Probabilidad de estado · tramo con cola</span>
+        <math display="block">
+          <mrow>
+            <msub><mi>P</mi><mi>n</mi></msub>
+            <mo>=</mo>
+            <msub><mi>P</mi><mn>0</mn></msub>
+            <mo>·</mo>
+            <mfrac>
+              <msup><mi>a</mi><mi>n</mi></msup>
+              <mrow>
+                <mi>c</mi><mo>!</mo><mo>·</mo>
+                <msup>
+                  <mi>c</mi>
+                  <mrow><mi>n</mi><mo>−</mo><mi>c</mi></mrow>
+                </msup>
+              </mrow>
+            </mfrac>
+            <mo>,</mo>
+            <mspace width="0.6em" />
+            <mi>c</mi><mo>&lt;</mo><mi>n</mi><mo>≤</mo><mi>K</mi>
+          </mrow>
+        </math>
+        <p class="formula__note">
+          Con todas las plazas ocupadas, cada llegada que espera añade un factor
+          <math><mi>a</mi><mo>/</mo><mi>c</mi></math>. La cola finita recorta la distribución en
+          <math><mi>K</mi></math>.
+        </p>
+      </div>
+
+      <div class="formula">
+        <span class="formula__label">Normalización</span>
+        <math display="block">
+          <mrow>
+            <msub><mi>P</mi><mn>0</mn></msub>
+            <mo>=</mo>
+            <mfrac>
+              <mn>1</mn>
+              <mrow>
+                <munderover>
+                  <mo>∑</mo>
+                  <mrow><mi>n</mi><mo>=</mo><mn>0</mn></mrow>
+                  <mi>c</mi>
+                </munderover>
+                <mfrac>
+                  <msup><mi>a</mi><mi>n</mi></msup>
+                  <mrow><mi>n</mi><mo>!</mo></mrow>
+                </mfrac>
+                <mo>+</mo>
+                <munderover>
+                  <mo>∑</mo>
+                  <mrow><mi>n</mi><mo>=</mo><mi>c</mi><mo>+</mo><mn>1</mn></mrow>
+                  <mi>K</mi>
+                </munderover>
+                <mfrac>
+                  <msup><mi>a</mi><mi>n</mi></msup>
+                  <mrow>
+                    <mi>c</mi><mo>!</mo><mo>·</mo>
+                    <msup>
+                      <mi>c</mi>
+                      <mrow><mi>n</mi><mo>−</mo><mi>c</mi></mrow>
+                    </msup>
+                  </mrow>
+                </mfrac>
+              </mrow>
+            </mfrac>
+          </mrow>
+        </math>
+        <p class="formula__note">
+          El denominador suma todas las probabilidades sin normalizar. En el simulador se calcula
+          con esta forma para evitar desbordamientos numéricos en cargas altas.
+        </p>
+      </div>
+
+      <p>
+        La probabilidad de rechazo es la probabilidad de que una llegada encuentre el sistema lleno.
+        Para llegadas Poisson, la proporción de llegadas que ven <math><mi>K</mi></math> vehículos
+        coincide con <math><msub><mi>P</mi><mi>K</mi></msub></math> (propiedad PASTA). Un rechazo no
+        es un error del modelo: es la consecuencia de una capacidad finita con demanda aleatoria.
+      </p>
+
+      <h2 id="metricas">Métricas y ley de Little</h2>
+      <p>
+        Con la distribución <math><msub><mi>P</mi><mi>n</mi></msub></math> se pueden calcular los
+        promedios de largo plazo. La ocupación media suma las plazas ocupadas, no los vehículos en
+        cola; la cola media suma solo el exceso sobre <math><mi>c</mi></math>.
+      </p>
+
+      <div class="formula">
+        <span class="formula__label">Ocupación media de plazas</span>
+        <math display="block">
+          <mrow>
+            <msub><mi>L</mi><mi>s</mi></msub>
+            <mo>=</mo>
+            <munderover>
+              <mo>∑</mo>
+              <mrow><mi>n</mi><mo>=</mo><mn>0</mn></mrow>
+              <mi>K</mi>
+            </munderover>
+            <mi>min</mi><mo>(</mo><mi>n</mi><mo>,</mo><mi>c</mi><mo>)</mo>
+            <msub><mi>P</mi><mi>n</mi></msub>
+            <mo>,</mo>
+            <mspace width="0.6em" />
+            <mi>U</mi><mo>=</mo>
+            <mfrac><msub><mi>L</mi><mi>s</mi></msub><mi>c</mi></mfrac>
+          </mrow>
+        </math>
+      </div>
+
+      <div class="formula">
+        <span class="formula__label">Cola media</span>
+        <math display="block">
+          <mrow>
+            <msub><mi>L</mi><mi>q</mi></msub>
+            <mo>=</mo>
+            <munderover>
+              <mo>∑</mo>
+              <mrow><mi>n</mi><mo>=</mo><mn>0</mn></mrow>
+              <mi>K</mi>
+            </munderover>
+            <mi>max</mi><mo>(</mo><mn>0</mn><mo>,</mo><mi>n</mi><mo>−</mo><mi>c</mi><mo>)</mo>
+            <msub><mi>P</mi><mi>n</mi></msub>
+          </mrow>
+        </math>
+      </div>
+
+      <p>
+        La ley de Little relaciona el número medio de vehículos en el sistema
+        <math><mi>L</mi></math>, la tasa efectiva de llegadas <math><msub><mi>λ</mi><mtext>eff</mtext></msub></math>
+        y el tiempo medio en el sistema <math><mi>W</mi></math>. Para un sistema estable,
+        <math><mi>L</mi><mo>=</mo><msub><mi>λ</mi><mtext>eff</mtext></msub><mi>W</mi></math>. La
+        tasa efectiva descuenta los rechazos:
+        <math><msub><mi>λ</mi><mtext>eff</mtext></msub><mo>=</mo><mi>λ</mi><mo>(</mo><mn>1</mn><mo>−</mo><msub><mi>P</mi><mi>K</mi></msub><mo>)</mo></math>.
+        <Citation ids={[5]} />
+      </p>
+
+      <div class="formula">
+        <span class="formula__label">Espera media y tiempo en el sistema</span>
+        <math display="block">
+          <mrow>
+            <msub><mi>W</mi><mi>q</mi></msub>
+            <mo>=</mo>
+            <mfrac><msub><mi>L</mi><mi>q</mi></msub><msub><mi>λ</mi><mtext>eff</mtext></msub></mfrac>
+            <mo>,</mo>
+            <mspace width="0.6em" />
+            <mi>W</mi>
+            <mo>=</mo>
+            <msub><mi>W</mi><mi>q</mi></msub>
+            <mo>+</mo>
+            <mfrac><mn>1</mn><mi>μ</mi></mfrac>
+            <mo>=</mo>
+            <mfrac><mi>L</mi><msub><mi>λ</mi><mtext>eff</mtext></msub></mfrac>
+          </mrow>
+        </math>
+        <p class="formula__note">
+          En el simulador, <math><msub><mi>W</mi><mi>q</mi></msub></math> se estima para los
+          vehículos aceptados y se expresa en minutos; <math><mi>L</mi></math> se obtiene integrando
+          el número de vehículos en el tiempo.
+        </p>
+      </div>
+
+      <h2 id="erlang-b">Erlang B: el caso sin cola</h2>
+      <p>
+        Si <math><mi>m</mi><mo>=</mo><mn>0</mn></math>, el sistema no tiene posiciones de espera:
+        quien llega cuando todas las plazas están ocupadas se va de inmediato. El modelo se reduce a
+        <strong>M/M/c/c</strong> y la probabilidad de bloqueo se conoce como fórmula de pérdidas de
+        Erlang B. Es un caso de prueba útil: el simulador con cola cero debe acercarse a este valor.
+        <Citation ids={[3, 4]} />
+      </p>
+
+      <div class="formula">
+        <span class="formula__label">Recurrencia de Erlang B</span>
+        <math display="block">
+          <mrow>
+            <msub><mi>B</mi><mn>0</mn></msub>
+            <mo>=</mo>
+            <mn>1</mn>
+            <mo>,</mo>
+            <mspace width="0.6em" />
+            <msub><mi>B</mi><mi>n</mi></msub>
+            <mo>=</mo>
+            <mfrac>
+              <mrow><mi>a</mi><mo>·</mo><msub><mi>B</mi><mrow><mi>n</mi><mo>−</mo><mn>1</mn></mrow></msub></mrow>
+              <mrow><mi>n</mi><mo>+</mo><mi>a</mi><mo>·</mo><msub><mi>B</mi><mrow><mi>n</mi><mo>−</mo><mn>1</mn></mrow></msub></mrow>
+            </mfrac>
+            <mo>,</mo>
+            <mspace width="0.6em" />
+            <msub><mi>P</mi><mi>K</mi></msub>
+            <mo>=</mo>
+            <msub><mi>B</mi><mi>c</mi></msub>
+          </mrow>
+        </math>
+        <p class="formula__note">
+          Cuando <math><mi>m</mi><mo>&gt;</mo><mn>0</mn></math>, Erlang B ya no describe el sistema:
+          la cola absorbe parte de la demanda y el rechazo cambia. No conviene usar Erlang B como
+          atajo para un lote con espera.
+        </p>
+      </div>
+
+      <h2 id="simulacion">Eventos discretos</h2>
+      <p>
+        La simulación de eventos discretos representa el sistema solo en los instantes en que algo
+        cambia: una llegada, una salida o el final del horizonte. Entre eventos, el estado permanece
+        constante, lo que permite acumular áreas y estimar promedios con precisión.
+        <Citation ids={[2, 6]} />
+      </p>
+
+      <p>
+        Para generar una permanencia exponencial con media
+        <math><mn>1</mn><mo>/</mo><mi>λ</mi></math> a partir de un número uniforme
+        <math><mi>U</mi><mo>∈</mo><mo>(</mo><mn>0</mn><mo>,</mo><mn>1</mn><mo>)</mo></math> se usa la
+        transformada inversa. El mismo procedimiento se aplica a las llegadas y a las salidas, con
+        sus respectivas tasas.
+      </p>
+
+      <div class="formula">
+        <span class="formula__label">Muestreo exponencial por transformada inversa</span>
+        <math display="block">
+          <mrow>
+            <mi>X</mi>
+            <mo>=</mo>
+            <mo>−</mo>
+            <mfrac>
+              <mrow><mi>ln</mi><mo>(</mo><mn>1</mn><mo>−</mo><mi>U</mi><mo>)</mo></mrow>
+              <mi>λ</mi>
+            </mfrac>
+            <mo>,</mo>
+            <mspace width="0.6em" />
+            <mi>E</mi><mo>[</mo><mi>X</mi><mo>]</mo>
+            <mo>=</mo>
+            <mfrac><mn>1</mn><mi>λ</mi></mfrac>
+          </mrow>
+        </math>
+      </div>
+
+      <p>El motor del simulador sigue este ciclo:</p>
+      <ol>
+        <li>Fijar el reloj en cero, el estado en cero y programar la primera llegada.</li>
+        <li>Comparar el próximo arribo con la próxima salida y avanzar al evento más cercano.</li>
+        <li>
+          Si llega un vehículo: contar la llegada; si hay plaza, ocuparla y programar su salida; si
+          no, ponerlo en cola o rechazarlo cuando la cola está llena.
+        </li>
+        <li>
+          Si sale un vehículo: liberar la plaza; si hay alguien esperando, admitirlo y programar su
+          salida.
+        </li>
+        <li>
+          Acumular el tiempo vivido por cada ocupación y cada cola entre eventos; detenerse al llegar
+          al horizonte.
+        </li>
+      </ol>
+
+      <p>
+        El calentamiento inicial se descarta para que el sistema no arranque artificialmente vacío.
+        En el escenario base se elimina el primer 15 % de las 24 horas, es decir, 3,6 horas. Las
+        llegadas y salidas que ocurren antes de ese corte no entran en las métricas, aunque sí
+        afectan el estado del sistema al inicio de la ventana medida.
+      </p>
+
+      <h2 id="monte-carlo">Monte Carlo reproducible</h2>
+      <p>
+        Monte Carlo usa números pseudoaleatorios para estimar una cantidad que no se quiere o no se
+        puede calcular de forma cerrada. Aquí no hace falta un experimento físico: la computadora
+        genera una realización del estacionamiento, la recorre y resume sus métricas.
+        <Citation ids={[1, 2]} />
+      </p>
+      <p>
+        La semilla es parte del experimento. Con la misma semilla y los mismos parámetros, el
+        simulador produce exactamente la misma secuencia de eventos. Al cambiar la semilla cambia la
+        historia, pero no los supuestos. Esta separación permite comparar escenarios sin confundir
+        el efecto de una política con el ruido de una realización particular.
+      </p>
+      <p>
+        El generador implementado es <strong>mulberry32</strong>, un PRNG determinista de 32 bits
+        adecuado para simulación educativa. No es criptográficamente seguro y no debe usarse para
+        secretos, contraseñas ni sorteos reales. Su ventaja didáctica es que cabe en pocas líneas y
+        se puede reproducir en cualquier navegador.
+      </p>
+
+      <h2 id="limites">Validación y límites</h2>
+      <p>
+        Una simulación no se valida por verse convincente, sino por compararse con una referencia.
+        El simulador reporta lado a lado la predicción M/M/c/K y la estimación de la corrida. Si la
+        diferencia es grande, conviene revisar la ventana de calentamiento, aumentar el horizonte o
+        repetir con otras semillas. La convergencia no elimina el sesgo de un mal modelo.
+        <Citation ids={[2, 6]} />
+      </p>
+      <ul>
+        <li>
+          <strong>Demanda no estacionaria:</strong> un campus tiene picos entre clases. Una tasa
+          constante de 45 veh/h promedia esos picos y puede subestimar la cola en los momentos
+          críticos.
+        </li>
+        <li>
+          <strong>Permanencias reales:</strong> si las estadías son más regulares que una
+          exponencial, el modelo puede exagerar la variabilidad y la espera. Los datos de campo
+          deberían ajustar la distribución.
+        </li>
+        <li>
+          <strong>Búsqueda de estacionamiento:</strong> la demanda de estacionamiento también
+          depende de la oferta y del precio. El costo de la búsqueda de plaza y los incentivos que
+          genera el estacionamiento gratuito están documentados por Shoup. <Citation ids={[7]} />
+        </li>
+        <li>
+          <strong>Capacidad estática:</strong> no se modelan reservas, abonos, movilidad reducida,
+          autos compartidos ni cambios de capacidad durante el día.
+        </li>
+      </ul>
+      <p>
+        Estas limitaciones no invalidan el ejercicio: lo delimitan. El valor del simulador es hacer
+        explícito el mecanismo y permitir preguntas contrafactuales —qué pasa si añadimos plazas,
+        qué pasa si la estadía media baja— sin afirmar que sus números son una predicción operativa.
+      </p>
+
+      <div class="notice">
+        <p>
+          <strong>Siguiente paso:</strong> lleva estas fórmulas al
+          <a href={withBase('/simulador/')}>simulador</a> y observa cómo cambian la ocupación, el
+          rechazo y la espera al modificar una sola variable. La página del
+          <a href={withBase('/caso-myspot/')}>caso MySpot</a> conecta el modelo con un escenario
+          concreto.
+        </p>
+      </div>
+    </article>
+  </div>
+</BaseLayout>

@@ -1,0 +1,7 @@
+# simulador-estacionamiento
+# Sitio estático; no hay rutas privadas ni paneles de administración.
+
+User-agent: *
+Allow: /
+
+Sitemap: https://ItsDieGhost.github.io/simulador-estacionamiento/sitemap-index.xml

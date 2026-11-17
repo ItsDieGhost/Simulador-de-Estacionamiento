@@ -1,0 +1,135 @@
+:root {
+  color-scheme: light dark;
+
+  --font-body: 'Archivo Variable', 'Archivo', 'Segoe UI', system-ui, sans-serif;
+  --font-display: var(--font-body);
+  --font-stencil: 'Saira Stencil One', var(--font-body);
+  --font-mono: 'IBM Plex Mono', 'Cascadia Mono', Consolas, monospace;
+
+  --step--1: clamp(0.75rem, 0.73rem + 0.1vw, 0.82rem);
+  --step-0: clamp(1rem, 0.97rem + 0.18vw, 1.08rem);
+  --step-1: clamp(1.18rem, 1.08rem + 0.45vw, 1.38rem);
+  --step-2: clamp(1.45rem, 1.25rem + 0.9vw, 1.95rem);
+  --step-3: clamp(1.85rem, 1.45rem + 1.8vw, 2.75rem);
+  --step-4: clamp(2.35rem, 1.65rem + 3.1vw, 4rem);
+  --step-5: clamp(3.1rem, 1.95rem + 5.3vw, 6.2rem);
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+  --space-8: 4rem;
+  --space-9: 6rem;
+  --space-10: 8rem;
+
+  --wrap: 78rem;
+  --measure: 68ch;
+  --gutter: clamp(1.1rem, 4vw, 2.75rem);
+  --header-h: 4.75rem;
+
+  --radius-xs: 1px;
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --border: 1px solid var(--line);
+  --border-strong: 2px solid var(--ink);
+
+  --focus: #0b4fbe;
+  --shadow-card: 0 1px 0 rgb(23 25 28 / 8%), 0 12px 32px rgb(23 25 28 / 6%);
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --dur-1: 140ms;
+  --dur-2: 220ms;
+  --dur-3: 320ms;
+
+  --bg: #e9e6dd;
+  --surface: #f4f1e8;
+  --surface-raised: #fbf9f3;
+  --surface-2: #dcd8cc;
+  --ink: #17191c;
+  --ink-soft: #383d44;
+  --muted: #5b6067;
+  --line: #c9c3b6;
+  --line-strong: #8f897c;
+  --accent: #ffc400;
+  --accent-soft: #ffe27a;
+  --accent-ink: #1b1a10;
+  --teal: #0a655b;
+  --teal-soft: #d2e9e3;
+  --danger: #ae371f;
+  --danger-soft: #f5dbd4;
+  --blue: #24579a;
+  --blue-soft: #d8e3f1;
+  --grid-line: rgb(23 25 28 / 5.5%);
+  --selection: #ffe27a;
+  --measure-rule: rgb(23 25 28 / 14%);
+
+  --panel-bg: #151a1f;
+  --panel-raised: #1d242b;
+  --panel-ink: #f1ede3;
+  --panel-muted: #aeb6c0;
+  --panel-line: #39434d;
+  --panel-grid: rgb(241 237 227 / 9%);
+  --chart-occupancy: #64dfc7;
+  --chart-queue: #ffc400;
+  --chart-capacity: #ff9077;
+  --chart-contrast: #c8f7ed;
+  --chart-others: #8fa3b8;
+
+  --series-occupancy: #0a655b;
+  --series-queue: #8a5a00;
+  --series-occupancy-soft: rgb(10 101 91 / 14%);
+  --series-queue-soft: rgb(138 90 0 / 12%);
+  --chart-grid: rgb(23 25 28 / 14%);
+  --chart-note: #4e535a;
+  --chart-warmup: rgb(23 25 28 / 7%);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --focus: #ffd65c;
+    --bg: #0f1317;
+    --surface: #161b20;
+    --surface-raised: #1b2127;
+    --surface-2: #222a32;
+    --ink: #f2eee5;
+    --ink-soft: #d3d0c8;
+    --muted: #a9b0b9;
+    --line: #303840;
+    --line-strong: #5c6672;
+    --accent: #ffc400;
+    --accent-soft: #4b3d05;
+    --accent-ink: #17160d;
+    --teal: #5ad7c2;
+    --teal-soft: #123830;
+    --danger: #ff9279;
+    --danger-soft: #402019;
+    --blue: #8bb7f0;
+    --blue-soft: #1b2c42;
+    --grid-line: rgb(255 255 255 / 4.5%);
+    --selection: #ffc400;
+    --measure-rule: rgb(255 255 255 / 14%);
+    --shadow-card: 0 1px 0 rgb(0 0 0 / 35%), 0 16px 40px rgb(0 0 0 / 25%);
+
+    --panel-bg: #13181d;
+    --panel-raised: #1b2229;
+    --panel-ink: #f2eee5;
+    --panel-muted: #b1b9c2;
+    --panel-line: #3a444e;
+    --panel-grid: rgb(242 238 229 / 8%);
+    --chart-occupancy: #69e5cd;
+    --chart-queue: #ffc400;
+    --chart-capacity: #ff9b83;
+    --chart-contrast: #c8f7ed;
+    --chart-others: #93a7bc;
+
+    --series-occupancy: #5ad7c2;
+    --series-queue: #ffc400;
+    --series-occupancy-soft: rgb(90 215 194 / 16%);
+    --series-queue-soft: rgb(255 196 0 / 13%);
+    --chart-grid: rgb(242 238 229 / 16%);
+    --chart-note: #b8bfc7;
+    --chart-warmup: rgb(242 238 229 / 7%);
+  }
+}

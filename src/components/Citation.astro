@@ -1,0 +1,25 @@
+---
+import { referenceById } from '../data/references';
+import { withBase } from '../lib/paths';
+
+interface Props {
+  ids: number | number[];
+}
+
+const ids = Array.isArray(Astro.props.ids) ? Astro.props.ids : [Astro.props.ids];
+const escapeHtml = (value: string): string =>
+  value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;');
+
+const parts = ids.map((id) => {
+  const reference = referenceById(id);
+  const label = escapeHtml(reference?.short ?? String(id));
+  return `<a href="${withBase(`/referencias/#ref-${id}`)}">${label}</a>`;
+});
+const html = `(${parts.join('; ')})`;
+---
+
+<span class="cite" set:html={html} />
