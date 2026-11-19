@@ -2,8 +2,8 @@ import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 
 const dist = path.resolve('dist');
-const [owner = 'ItsDieGhost', repo = 'simulador-estacionamiento'] = (
-  process.env.GITHUB_REPOSITORY ?? 'ItsDieGhost/simulador-estacionamiento'
+const [owner = 'ItsDieGhost', repo = 'Simulador-de-Estacionamiento'] = (
+  process.env.GITHUB_REPOSITORY ?? 'ItsDieGhost/Simulador-de-Estacionamiento'
 ).split('/');
 const base = (process.env.BASE_PATH ?? `/${repo}/`).replace(/\/$/, '');
 void owner;

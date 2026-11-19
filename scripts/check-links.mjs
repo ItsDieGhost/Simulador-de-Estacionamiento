@@ -2,8 +2,8 @@ import { readdir, readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 
 const dist = path.resolve('dist');
-const [owner = 'ItsDieGhost', repo = 'simulador-estacionamiento'] = (
-  process.env.GITHUB_REPOSITORY ?? 'ItsDieGhost/simulador-estacionamiento'
+const [owner = 'ItsDieGhost', repo = 'Simulador-de-Estacionamiento'] = (
+  process.env.GITHUB_REPOSITORY ?? 'ItsDieGhost/Simulador-de-Estacionamiento'
 ).split('/');
 const site = (process.env.SITE_URL ?? `https://${owner}.github.io`).replace(/\/$/, '');
 const base = (process.env.BASE_PATH ?? `/${repo}/`).replace(/\/$/, '');
@@ -65,7 +65,7 @@ async function checkExternalUrl(url) {
       redirect: 'follow',
       signal: AbortSignal.timeout(15_000),
       headers: {
-        'user-agent': 'MySpot-link-check/1.0 (+https://github.com/ItsDieGhost/simulador-estacionamiento)',
+        'user-agent': 'MySpot-link-check/1.0 (+https://github.com/ItsDieGhost/Simulador-de-Estacionamiento)',
         accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
       },
     });

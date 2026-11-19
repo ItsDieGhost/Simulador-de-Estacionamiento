@@ -7,8 +7,8 @@ export const site = {
   author: 'Diego Arbeláez',
   institution: 'UNEFA Táchira',
   program: 'Ingeniería de Sistemas',
-  repoUrl: 'https://github.com/ItsDieGhost/simulador-estacionamiento',
-  repoLabel: 'ItsDieGhost/simulador-estacionamiento',
+  repoUrl: 'https://github.com/ItsDieGhost/Simulador-de-Estacionamiento',
+  repoLabel: 'ItsDieGhost/Simulador-de-Estacionamiento',
   ogImage: '/og-image.png',
   ogImageAlt:
     'Tarjeta de MySpot con un plano de estacionamiento, fórmula de colas y la leyenda Simulación M/M/c/K.',

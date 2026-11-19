@@ -1,8 +1,8 @@
 import { access, mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
-const [owner = 'ItsDieGhost', repo = 'simulador-estacionamiento'] = (
-  process.env.GITHUB_REPOSITORY ?? 'ItsDieGhost/simulador-estacionamiento'
+const [owner = 'ItsDieGhost', repo = 'Simulador-de-Estacionamiento'] = (
+  process.env.GITHUB_REPOSITORY ?? 'ItsDieGhost/Simulador-de-Estacionamiento'
 ).split('/');
 
 const site = (process.env.SITE_URL ?? `https://${owner}.github.io`).replace(/\/$/, '');
